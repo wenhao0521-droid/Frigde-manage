@@ -5,18 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>智慧冰箱庫存管家</title>
   
-  <!-- Web App / PWA Meta -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="冰箱管家">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#10B981">
 
-  <!-- Tailwind CSS & Font Awesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- html5-qrcode 相機條碼掃描套件 -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
@@ -29,7 +25,6 @@
     .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     #qr-reader video { border-radius: 0.75rem; object-fit: cover; width: 100% !important; }
     
-    /* 麥克風收音動態波紋 */
     @keyframes pulse-ring {
       0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
       70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
@@ -79,7 +74,7 @@
       </button>
     </div>
 
-    <!-- 快捷功能區：條碼掃描 + 語音助理說明 -->
+    <!-- 快捷功能區 -->
     <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 text-white shadow-md flex items-center justify-between">
       <div>
         <h3 class="font-bold text-base flex items-center gap-1.5">
@@ -143,7 +138,7 @@
     </div>
   </nav>
 
-  <!-- 彈窗：新增/編輯食材 -->
+  <!-- 彈窗：新增/編輯食材 (已加入刪除按鈕) -->
   <div id="itemModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
     <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center pb-2 border-b">
@@ -211,9 +206,14 @@
           <label class="block text-xs font-semibold text-slate-600 mb-1">有效期限 (到期日) *</label>
           <input type="date" id="itemExpiry" required class="w-full text-sm border rounded-lg p-2">
         </div>
-        <div class="pt-2 flex space-x-2">
-          <button type="button" onclick="closeItemModal()" class="w-1/2 py-2 border rounded-lg text-sm text-slate-600 font-semibold hover:bg-slate-50">取消</button>
-          <button type="submit" class="w-1/2 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow">確認儲存</button>
+        <div class="pt-2 flex items-center justify-between gap-2">
+          <button type="button" id="btnDeleteItem" onclick="deleteCurrentItem()" class="hidden py-2 px-3 border border-rose-200 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 flex items-center gap-1">
+            <i class="fa-solid fa-trash-can"></i> 刪除
+          </button>
+          <div class="flex-1 flex justify-end gap-2">
+            <button type="button" onclick="closeItemModal()" class="py-2 px-3 border rounded-lg text-xs text-slate-600 font-semibold hover:bg-slate-50">取消</button>
+            <button type="submit" class="py-2 px-4 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow">確認儲存</button>
+          </div>
         </div>
       </form>
     </div>
@@ -244,10 +244,19 @@
   <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
     <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
       <div class="flex justify-between items-center pb-2 border-b">
-        <h3 class="font-bold text-slate-800 text-base">資料管理與自建條碼庫</h3>
+        <h3 class="font-bold text-slate-800 text-base">資料管理與設定</h3>
         <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div class="space-y-3">
+
+      <!-- 快速清空操作 -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">庫存清理</h4>
+        <button onclick="clearAllInventory()" class="w-full py-2 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-trash-can"></i> 一鍵清空冰箱所有食材 (重新開始)
+        </button>
+      </div>
+
+      <div class="space-y-3 pt-2 border-t">
         <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">家庭備份與共享</h4>
         <div class="grid grid-cols-2 gap-2">
           <button onclick="exportData()" class="py-2 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center space-x-1">
@@ -261,11 +270,12 @@
           </label>
         </div>
       </div>
+
       <div class="space-y-2 pt-2 border-t">
         <div class="flex justify-between items-center">
           <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">台灣商品條碼庫 (<span id="barcodeCount">0</span>)</h4>
         </div>
-        <div id="barcodeListContainer" class="max-h-48 overflow-y-auto space-y-1.5 custom-scroll text-xs"></div>
+        <div id="barcodeListContainer" class="max-h-40 overflow-y-auto space-y-1.5 custom-scroll text-xs"></div>
       </div>
       <div class="pt-2">
         <button onclick="closeSettingsModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg">關閉</button>
@@ -274,7 +284,6 @@
   </div>
 
   <script>
-    // 預設台灣商品條碼資料庫 (EAN-13)
     const DEFAULT_BARCODES = {
       "4710126532014": { name: "義美全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
       "4710088410214": { name: "統一純喫茶 紅茶 650ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 15, icon: "fa-bottle-water" },
@@ -283,7 +292,6 @@
       "4711234567890": { name: "洗選洗淨鮮雞蛋 10入", zone: "fridge", unit: "盒", minQty: 1, shelfDays: 21, icon: "fa-egg" }
     };
 
-    // 預設示範食材
     const DEFAULT_INVENTORY = [
       { id: "demo-1", barcode: "4710126532014", name: "義美全脂鮮乳", zone: "fridge", qty: 1, minQty: 1, unit: "瓶", expiry: getFutureDateStr(2), icon: "fa-bottle-water" },
       { id: "demo-2", barcode: "4711234567890", name: "鮮雞蛋", zone: "fridge", qty: 2, minQty: 4, unit: "顆", expiry: getFutureDateStr(6), icon: "fa-egg" },
@@ -295,8 +303,6 @@
     let shoppingList = JSON.parse(localStorage.getItem('smart_fridge_shopping')) || [];
     let currentFilter = 'all';
     let html5QrCode = null;
-
-    // 語音辨識相關變數
     let recognition = null;
     let isListening = false;
 
@@ -335,9 +341,7 @@
       }
     }
 
-    // ==========================================
-    // 語音辨識核心邏輯 (Web Speech API)
-    // ==========================================
+    // 語音辨識
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -362,7 +366,7 @@
         parseVoiceCommand(transcript);
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = () => {
         document.getElementById('voiceTranscriptTip').textContent = '語音未識別，請重試';
         setTimeout(() => document.getElementById('voiceTranscriptTip').classList.add('hidden'), 2000);
       };
@@ -391,66 +395,49 @@
       }
     }
 
-    // 中文語音自然語言解析
     function parseVoiceCommand(text) {
-      // 尋找食材比對（以冰箱庫存品名模糊匹配）
       let matchedItem = null;
-      let matchedKeyword = '';
 
       for (let item of inventory) {
-        // 先測試完整名稱是否包含，或反向包含
-        const simpleName = item.name.replace(/\\d+.*$/, '').trim(); // 排除 936ml 等規格字
+        const simpleName = item.name.replace(/\\d+.*$/, '').trim();
         if (text.includes(item.name) || text.includes(simpleName) || (simpleName.length >= 2 && simpleName.includes(text.slice(0, 2)))) {
           matchedItem = item;
-          matchedKeyword = simpleName;
           break;
         }
       }
 
-      // 如果找不到，測試常見關鍵字（牛奶、蛋、肉、菜、餃子等）
       if (!matchedItem) {
         const commonWords = ['牛奶', '鮮乳', '蛋', '雞蛋', '魚餃', '水餃', '牛肉', '豬肉', '泡麵', '麵'];
         for (let w of commonWords) {
           if (text.includes(w)) {
             matchedItem = inventory.find(i => i.name.includes(w));
-            if (matchedItem) {
-              matchedKeyword = w;
-              break;
-            }
+            if (matchedItem) break;
           }
         }
       }
 
       if (!matchedItem) {
-        const reply = `聽到了「${text}」，但在冰箱找不到對應的食材。`;
+        const reply = `聽到了「${text}」，但在冰箱找不到對應食材。`;
         speakText(reply);
         alert(reply);
         return;
       }
 
-      // 解析數量動作
       let newQty = matchedItem.qty;
-      let actionDesc = '';
 
       if (text.includes('剩一半') || text.includes('半瓶') || text.includes('半包') || text.includes('半盒')) {
         newQty = 0.5;
-        actionDesc = '剩一半 (0.5)';
       } else if (text.includes('吃完') || text.includes('喝完') || text.includes('用完') || text.includes('沒有了') || text.includes('沒了') || text.includes('剩0')) {
         newQty = 0;
-        actionDesc = '已用完 (0)';
       } else {
-        // 解析數字：例如「剩 2 瓶」、「還有 3 顆」、「剩下 1.5」
         const matchNum = text.match(/(?:剩|還有|剩下|變成|改為|有)\\s*(\\d+(\\.\\d+)?)/);
         if (matchNum) {
           newQty = parseFloat(matchNum[1]);
-          actionDesc = `剩餘 ${newQty}`;
         } else {
-          // 扣減句型：例如「吃了 2 顆」、「喝了 1 瓶」
           const matchMinus = text.match(/(?:吃|喝|用|拿)了?\\s*(\\d+(\\.\\d+)?)/);
           if (matchMinus) {
             const minusVal = parseFloat(matchMinus[1]);
             newQty = Math.max(0, Number((matchedItem.qty - minusVal).toFixed(1)));
-            actionDesc = `消耗 ${minusVal}，剩餘 ${newQty}`;
           }
         }
       }
@@ -462,10 +449,9 @@
       speakText(successMsg);
       document.getElementById('voiceTranscriptTip').textContent = successMsg;
 
-      // 檢查低庫存
       if (newQty <= matchedItem.minQty && !shoppingList.some(s => s.name === matchedItem.name && !s.checked)) {
         setTimeout(() => {
-          if (confirm(`「${matchedItem.name}」已低於安全存量，要幫您加入採買清單嗎？`)) {
+          if (confirm(`「${matchedItem.name}」已低於安全存量，要加入採買清單嗎？`)) {
             shoppingList.push({ id: 'shop-' + Date.now(), name: matchedItem.name, unit: matchedItem.unit, qty: 1, checked: false });
             saveAll();
           }
@@ -473,9 +459,7 @@
       }
     }
 
-    // ==========================================
-    // 介面渲染與庫存運作
-    // ==========================================
+    // 介面渲染
     function render() {
       renderInventory();
       renderSummary();
@@ -507,7 +491,7 @@
         listEl.innerHTML = `
           <div class="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300">
             <i class="fa-solid fa-basket-shopping text-3xl text-slate-300 mb-2"></i>
-            <p class="text-xs text-slate-400">目前沒有此分類的食材</p>
+            <p class="text-xs text-slate-400">目前沒有食材，點右上角「＋新增」或掃碼建檔</p>
           </div>
         `;
         return;
@@ -555,7 +539,7 @@
               <span class="px-2 text-xs font-bold text-slate-800 min-w-[2.5rem] text-center">${item.qty} <span class="text-[10px] font-normal text-slate-500">${item.unit}</span></span>
               <button onclick="changeQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center text-slate-600 hover:bg-white rounded font-bold transition">+</button>
             </div>
-            <button onclick="openEditModal('${item.id}')" class="text-slate-400 hover:text-slate-600 p-1.5">
+            <button onclick="openEditModal('${item.id}')" class="text-slate-400 hover:text-slate-600 p-1.5" title="編輯或刪除">
               <i class="fa-solid fa-pen text-xs"></i>
             </button>
           </div>
@@ -579,7 +563,9 @@
       });
 
       const summaryEl = document.getElementById('alertSummary');
-      if (expiredCount === 0 && soonCount === 0 && lowCount === 0) {
+      if (inventory.length === 0) {
+        summaryEl.innerHTML = `<span class="text-slate-500 font-medium">冰箱空空如也，快採買並入庫吧！</span>`;
+      } else if (expiredCount === 0 && soonCount === 0 && lowCount === 0) {
         summaryEl.innerHTML = `<span class="text-emerald-700 font-medium">冰箱庫存狀態良好，暫無即將過期或缺貨食材。</span>`;
       } else {
         summaryEl.innerHTML = `
@@ -735,6 +721,7 @@
       document.getElementById('itemQty').value = '1';
       document.getElementById('itemMinQty').value = '1';
       document.getElementById('itemExpiry').value = getFutureDateStr(7);
+      document.getElementById('btnDeleteItem').classList.add('hidden'); // 新增時不顯示刪除鈕
       document.getElementById('itemModal').classList.remove('hidden');
     }
 
@@ -751,11 +738,32 @@
       document.getElementById('itemMinQty').value = item.minQty;
       document.getElementById('itemUnit').value = item.unit || '份';
       document.getElementById('itemExpiry').value = item.expiry;
+      document.getElementById('btnDeleteItem').classList.remove('hidden'); // 編輯時顯示刪除鈕
       document.getElementById('itemModal').classList.remove('hidden');
     }
 
     function closeItemModal() {
       document.getElementById('itemModal').classList.add('hidden');
+    }
+
+    // 單項刪除邏輯
+    function deleteCurrentItem() {
+      const id = document.getElementById('editItemId').value;
+      const item = inventory.find(i => i.id === id);
+      if (item && confirm(`確定要從冰箱刪除「${item.name}」嗎？`)) {
+        inventory = inventory.filter(i => i.id !== id);
+        closeItemModal();
+        saveAll();
+      }
+    }
+
+    // 一鍵清空冰箱所有食材
+    function clearAllInventory() {
+      if (confirm('確定要清空冰箱內的所有食材嗎？（自建的條碼資料庫仍會保留）')) {
+        inventory = [];
+        saveAll();
+        closeSettingsModal();
+      }
     }
 
     function handleSaveItem(e) {
@@ -801,7 +809,7 @@
       }
     }
 
-    // 相機掃描條碼
+    // 相機掃描
     function startScannerModal() {
       document.getElementById('scannerModal').classList.remove('hidden');
       const readerEl = document.getElementById('qr-reader');
@@ -813,7 +821,7 @@
 
       const config = { fps: 10, qrbox: { width: 250, height: 160 } };
       html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-      .catch(err => {
+      .catch(() => {
         document.getElementById('scanFeedback').textContent = '無法取得鏡頭權限，請改用手動或照片上傳。';
       });
     }
@@ -846,7 +854,7 @@
         .then(decodedText => {
           onScanSuccess(decodedText);
         })
-        .catch(err => {
+        .catch(() => {
           alert("無法從照片辨識條碼，請換一張或手動輸入。");
         });
     }
