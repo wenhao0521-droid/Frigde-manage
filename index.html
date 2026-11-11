@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="智慧冰箱">
+  <meta name="theme-color" content="#10b981">
+  <title>Smart Fridge - 智慧冰箱庫存管家</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- html5-qrcode 條碼掃描套件 -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes scanAnimation {
+      0% { top: 5%; opacity: 0.8; }
+      50% { top: 90%; opacity: 1; }
+      100% { top: 5%; opacity: 0.8; }
+    }
+    .scanner-laser {
+      animation: scanAnimation 1.8s infinite ease-in-out;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    #interactive-video video {
+      object-fit: cover;
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 1.5rem;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen pb-28 md:pb-12 flex flex-col items-center select-none">
+
+  <!-- 頂部導航列 -->
+  <header class="w-full max-w-2xl bg-white/85 backdrop-blur-md sticky top-0 z-30 border-b border-slate-200/80 px-4 py-3 flex items-center justify-between shadow-xs">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+        <i class="fa-solid fa-snowflake text-xl"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 class="text-base font-bold tracking-tight text-slate-900 leading-none">Smart Fridge</h1>
+          <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">PWA</span>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-1">智慧食材庫存與效期管家</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <!-- 備份與條碼庫管理 -->
+      <button onclick="openSettingsModal()" title="資料管理與備份" class="p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition active:scale-95">
+        <i class="fa-solid fa-sliders text-base"></i>
+      </button>
+      <!-- 通知預警按鈕 -->
+      <button id="btnOpenAlerts" class="relative p-2.5 rounded-xl hover:bg-slate-100 text-slate-600 transition active:scale-95">
+        <i class="fa-regular fa-bell text-base"></i>
+        <span id="alertBadge" class="hidden absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white"></span>
+      </button>
+      <!-- 手動快速入庫 -->
+      <button onclick="openItemModal()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl shadow-xs transition">
+        <i class="fa-solid fa-plus text-xs"></i>
+        <span>入庫</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主容器 -->
+  <main class="w-full max-w-2xl px-4 py-3 space-y-3.5">
+
+    <!-- 晨間推播預覽橫幅 (可折疊/關閉) -->
+    <div id="morningDigestBanner" class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-3.5 shadow-md border border-slate-700/60 relative">
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex items-center gap-2 text-xs font-bold text-amber-300">
+          <i class="fa-solid fa-sun text-sm"></i>
+          <span>今日冰箱晨報 (LINE 提醒通知)</span>
+        </div>
+        <button onclick="document.getElementById('morningDigestBanner').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <p id="digestSummaryText" class="text-xs text-slate-200 mt-1.5 font-medium leading-relaxed">
+        載入庫存摘要中...
+      </p>
+      <div class="mt-2.5 flex items-center gap-2">
+        <button onclick="copyLineReport()" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+          <i class="fa-regular fa-copy"></i>
+          <span>複製 LINE 提醒文字</span>
+        </button>
+        <button onclick="openAlertsModal()" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition">
+          查看清單
+        </button>
+      </div>
+    </div>
+
+    <!-- 冰箱分頁內容 -->
+    <div id="viewFridge" class="space-y-3.5">
+      <!-- 狀態統計與快篩指標 -->
+      <div class="grid grid-cols-3 gap-2.5">
+        <div onclick="setFilterStatus('expiring')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs hover:border-amber-400 active:scale-98 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] font-bold text-amber-600">
+            <span>即將過期</span>
+            <i class="fa-solid fa-clock"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1">
+            <span id="statExpiring" class="text-2xl font-black text-amber-600">0</span>
+            <span class="text-[10px] text-slate-400 font-medium">(3天內)</span>
+          </div>
+        </div>
+
+        <div onclick="setFilterStatus('expired')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs hover:border-rose-400 active:scale-98 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] font-bold text-rose-600">
+            <span>已過期</span>
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1">
+            <span id="statExpired" class="text-2xl font-black text-rose-600">0</span>
+            <span class="text-[10px] text-slate-400 font-medium">項</span>
+          </div>
+        </div>
+
+        <div onclick="setFilterStatus('lowStock')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/90 shadow-xs hover:border-blue-400 active:scale-98 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between text-[11px] font-bold text-blue-600">
+            <span>缺貨/低庫存</span>
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1">
+            <span id="statLowStock" class="text-2xl font-black text-blue-600">0</span>
+            <span class="text-[10px] text-slate-400 font-medium">項</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快捷操作：掃描條碼按鈕 BANNER -->
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-4 text-white shadow-md flex items-center justify-between">
+        <div class="space-y-1">
+          <div class="flex items-center gap-1.5 font-bold text-sm">
+            <i class="fa-solid fa-camera text-amber-300"></i>
+            <span>相機掃描條碼入庫</span>
+          </div>
+          <p class="text-[11px] text-emerald-100">支援台灣 471 條碼庫，即掃即錄、自學記憶</p>
+        </div>
+        <button onclick="openScannerModal()" class="bg-white text-emerald-700 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm hover:bg-emerald-50 active:scale-95 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-barcode"></i>
+          <span>開啟掃描</span>
+        </button>
+      </div>
+
+      <!-- 搜尋與排序欄 -->
+      <div class="bg-white p-2 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row gap-2 shadow-xs">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+          <input type="text" id="searchInput" placeholder="搜尋食材、品牌、471條碼..." oninput="renderItems()" 
+            class="w-full bg-slate-50 text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200/60 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="sortBy" onchange="renderItems()" class="bg-slate-50 text-slate-700 text-xs px-3 py-2.5 rounded-xl border border-slate-200/60 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <option value="expiryAsc">依到期日 (近 ➔ 遠)</option>
+            <option value="expiryDesc">依到期日 (遠 ➔ 近)</option>
+            <option value="qtyAsc">依庫存數量 (少 ➔ 多)</option>
+            <option value="newest">依新增時間</option>
+          </select>
+          <button id="btnResetFilter" onclick="resetFilter()" class="hidden text-xs bg-slate-200 hover:bg-slate-300 px-3 py-2.5 rounded-xl text-slate-700 font-semibold transition">
+            重設篩選
+          </button>
+        </div>
+      </div>
+
+      <!-- 分區標籤列 (Tabs) -->
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <button onclick="changeCategory('all')" class="zone-tab px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition bg-slate-900 text-white shadow-xs" data-zone="all">
+          全部 (<span id="countAll">0</span>)
+        </button>
+        <button onclick="changeCategory('fridge')" class="zone-tab px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition bg-white text-slate-600 border border-slate-200/60 hover:bg-slate-200" data-zone="fridge">
+          ❄️ 冷藏室 (<span id="countFridge">0</span>)
+        </button>
+        <button onclick="changeCategory('freezer')" class="zone-tab px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition bg-white text-slate-600 border border-slate-200/60 hover:bg-slate-200" data-zone="freezer">
+          🧊 冷凍庫 (<span id="countFreezer">0</span>)
+        </button>
+        <button onclick="changeCategory('pantry')" class="zone-tab px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition bg-white text-slate-600 border border-slate-200/60 hover:bg-slate-200" data-zone="pantry">
+          🍞 常溫/乾貨 (<span id="countPantry">0</span>)
+        </button>
+      </div>
+
+      <!-- 庫存食材清單 -->
+      <div id="itemList" class="space-y-2.5">
+        <!-- 動態渲染卡片 -->
+      </div>
+      
+      <!-- 無資料空狀態 -->
+      <div id="emptyState" class="hidden text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300 p-6">
+        <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-2xl mb-3">
+          <i class="fa-solid fa-basket-shopping"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-700">目前沒有符合的食材</h3>
+        <p class="text-xs text-slate-400 mt-1">點擊上方「開啟掃描」或「入庫」開始管理冰箱！</p>
+      </div>
+    </div>
+
+    <!-- 採買清單分頁 (Shopping List) -->
+    <div id="viewShopping" class="hidden space-y-3.5">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">採買補貨清單</h2>
+          <p class="text-[11px] text-slate-500">採買勾選後，可直接一鍵回補至冰箱庫存</p>
+        </div>
+        <button onclick="addShoppingItemPrompt()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-xs transition flex items-center gap-1.5">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>新增項目</span>
+        </button>
+      </div>
+
+      <div id="shoppingListContainer" class="space-y-2">
+        <!-- 動態渲染待買項目 -->
+      </div>
+
+      <div id="shoppingEmpty" class="hidden text-center py-16 bg-white rounded-3xl border border-dashed border-slate-300 p-6">
+        <i class="fa-solid fa-cart-flatbed text-3xl text-slate-300 mb-2"></i>
+        <p class="text-xs text-slate-500">目前採買清單空空如也！</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 底部固定導航 (Mobile Navigation Bar) -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-8 py-2.5 flex items-center justify-around shadow-lg max-w-2xl mx-auto">
+    <button onclick="switchTab('fridge')" id="navFridge" class="flex flex-col items-center gap-1 text-emerald-600 font-bold text-[11px]">
+      <i class="fa-solid fa-refrigerator text-lg"></i>
+      <span>冰箱庫存</span>
+    </button>
+    <button onclick="switchTab('shopping')" id="navShopping" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-bold text-[11px] relative">
+      <i class="fa-solid fa-cart-shopping text-lg"></i>
+      <span>採買清單</span>
+      <span id="shoppingBadge" class="hidden absolute -top-1 -right-2 px-1.5 py-0.5 bg-rose-500 text-white rounded-full text-[10px] font-black">0</span>
+    </button>
+  </nav>
+
+  <!-- 模態框：html5-qrcode 真實相機條碼掃描器 -->
+  <div id="modalScanner" class="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      <div class="p-3.5 bg-slate-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2 text-xs font-bold">
+          <i class="fa-solid fa-camera text-emerald-400"></i>
+          <span>相機鏡頭條碼掃描 (EAN-13)</span>
+        </div>
+        <button onclick="closeScannerModal()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 相機預覽區域 -->
+      <div class="relative bg-black flex-1 min-h-[260px] flex items-center justify-center overflow-hidden">
+        <div id="scannerReader" class="w-full h-full"></div>
+        <!-- 裝飾用掃描紅線與外框 (當相機未就緒時可供引導) -->
+        <div id="scannerOverlay" class="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div class="w-56 h-36 border-2 border-emerald-400/80 rounded-2xl relative flex items-center justify-center">
+            <div class="scanner-laser absolute left-2 right-2 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e]"></div>
+            <span class="text-[11px] text-white/70 font-mono tracking-wider bg-black/40 px-2 py-0.5 rounded">對準商品條碼</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快速測試與手動備用輸入 -->
+      <div class="p-4 space-y-3 bg-white overflow-y-auto">
+        <div class="flex items-center justify-between text-xs text-slate-500">
+          <span>相機無權限或在電腦測試？</span>
+          <!-- 支援上傳條碼圖片掃描 -->
+          <label class="cursor-pointer text-emerald-600 font-bold hover:underline flex items-center gap-1">
+            <i class="fa-solid fa-image"></i>
+            <span>選取圖片辨識</span>
+            <input type="file" id="barcodeFileInput" accept="image/*" class="hidden" onchange="scanBarcodeFromFile(event)">
+          </label>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-bold text-slate-700 block mb-1">台灣常見商品條碼快速示範：</label>
+          <select id="quickBarcodeSelect" class="w-full bg-slate-100 text-xs p-2.5 rounded-xl border border-slate-200">
+            <option value="">-- 點擊模擬掃描商品 --</option>
+            <option value="4710018112003">4710018112003 - 義美全脂鮮奶 936ml</option>
+            <option value="4710088411234">4710088411234 - 統一純喫茶紅茶 650ml</option>
+            <option value="4710199101121">4710199101121 - 桂冠魚餃 100g</option>
+            <option value="4711234567890">4711234567890 - 大成冷藏嫩雞胸肉</option>
+            <option value="4710022020202">4710022020202 - 金蘭純釀醬油 590ml</option>
+            <option value="4710085121013">4710085121013 - 光泉原味優酪乳 500ml</option>
+            <option value="4719999999999">4719999999999 - 未知商品 (測試自建條碼學習)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="text" id="manualBarcodeInput" placeholder="或手動輸入 13 碼條碼" class="flex-1 bg-slate-100 text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <button onclick="handleManualScanSubmit()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">
+            辨識
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模態框：食材編輯與入庫表單 -->
+  <div id="modalItem" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl p-6 relative my-8">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 id="modalTitle" class="text-sm font-bold text-slate-800">新增食材到冰箱</h3>
+        <button onclick="closeItemModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="itemForm" onsubmit="saveItem(event)" class="mt-4 space-y-3.5">
+        <input type="hidden" id="editItemId">
+
+        <!-- 條碼資訊提示 -->
+        <div id="barcodeNotice" class="hidden bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-xs text-emerald-800 flex items-center justify-between">
+          <span><i class="fa-solid fa-barcode mr-1"></i> 已綁定條碼：<b id="displayBarcode" class="font-mono"></b></span>
+          <span class="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-bold">自動記憶</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">食材品名 <span class="text-rose-500">*</span></label>
+          <div class="flex gap-2">
+            <input type="text" id="itemEmoji" class="w-12 text-center text-xl bg-slate-100 rounded-xl border border-slate-200" value="🥛" maxlength="2">
+            <input type="text" id="itemName" required placeholder="如：義美鮮乳、雞蛋" class="flex-1 bg-slate-100 text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+          <!-- 常用圖示快速選取 -->
+          <div class="flex gap-1.5 mt-1.5 overflow-x-auto no-scrollbar py-1">
+            <button type="button" onclick="selectEmoji('🥛')" class="text-base p-1 hover:bg-slate-100 rounded">🥛</button>
+            <button type="button" onclick="selectEmoji('🥚')" class="text-base p-1 hover:bg-slate-100 rounded">🥚</button>
+            <button type="button" onclick="selectEmoji('🥩')" class="text-base p-1 hover:bg-slate-100 rounded">🥩</button>
+            <button type="button" onclick="selectEmoji('🥬')" class="text-base p-1 hover:bg-slate-100 rounded">🥬</button>
+            <button type="button" onclick="selectEmoji('🥟')" class="text-base p-1 hover:bg-slate-100 rounded">🥟</button>
+            <button type="button" onclick="selectEmoji('🍎')" class="text-base p-1 hover:bg-slate-100 rounded">🍎</button>
+            <button type="button" onclick="selectEmoji('🥫')" class="text-base p-1 hover:bg-slate-100 rounded">🥫</button>
+            <button type="button" onclick="selectEmoji('🍞')" class="text-base p-1 hover:bg-slate-100 rounded">🍞</button>
+            <button type="button" onclick="selectEmoji('🧃')" class="text-base p-1 hover:bg-slate-100 rounded">🧃</button>
+            <button type="button" onclick="selectEmoji('🍲')" class="text-base p-1 hover:bg-slate-100 rounded">🍲</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">存放分區</label>
+            <select id="itemZone" class="w-full bg-slate-100 text-xs px-3 py-2.5 rounded-xl border border-slate-200">
+              <option value="fridge">❄️ 冷藏室</option>
+              <option value="freezer">🧊 冷凍庫</option>
+              <option value="pantry">🍞 常溫/乾貨</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">有效期限 <span class="text-rose-500">*</span></label>
+            <input type="date" id="itemExpiry" required class="w-full bg-slate-100 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">庫存數量</label>
+            <input type="number" id="itemQty" min="0" step="1" value="1" required class="w-full bg-slate-100 text-xs px-3 py-2.5 rounded-xl border border-slate-200 text-center font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">在地單位</label>
+            <select id="itemUnit" class="w-full bg-slate-100 text-xs px-2 py-2.5 rounded-xl border border-slate-200 text-center font-medium">
+              <option value="瓶">瓶</option>
+              <option value="盒">盒</option>
+              <option value="包">包</option>
+              <option value="罐">罐</option>
+              <option value="顆">顆</option>
+              <option value="個">個</option>
+              <option value="袋">袋</option>
+              <option value="台斤">台斤</option>
+              <option value="條">條</option>
+              <option value="把">把</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">安全存量警報</label>
+            <input type="number" id="itemMinQty" min="0" step="1" value="1" title="剩餘量小於或等於此數時發送低庫存通知" class="w-full bg-slate-100 text-xs px-3 py-2.5 rounded-xl border border-slate-200 text-center font-bold text-blue-600">
+          </div>
+        </div>
+
+        <input type="hidden" id="itemBarcode">
+
+        <div class="pt-3 flex gap-2">
+          <button type="button" onclick="closeItemModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition">
+            取消
+          </button>
+          <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-md">
+            儲存入庫
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 模態框：設定、備份匯出入與條碼庫管理 -->
+  <div id="modalSettings" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl p-6 relative my-8 space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-emerald-600"></i>
+          <h3 class="text-sm font-bold text-slate-800">設定、備份與台灣條碼庫</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- 區塊一：家庭備份與分享 -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-file-arrow-down text-emerald-600"></i>
+          <span>家庭資料備份與還原 (JSON)</span>
+        </h4>
+        <p class="text-[11px] text-slate-500">將冰箱清單與條碼庫匯出成單一檔案，可透過 LINE 發給家人備份或還原。</p>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="exportDataJSON()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+            <i class="fa-solid fa-download"></i>
+            <span>匯出備份檔案</span>
+          </button>
+          <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200">
+            <i class="fa-solid fa-upload"></i>
+            <span>匯入還原備份</span>
+            <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importDataJSON(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- 區塊二：台灣自建條碼資料庫維護 -->
+      <div class="space-y-2 pt-2 border-t border-slate-100">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-barcode text-emerald-600"></i>
+            <span>已記憶的台灣條碼庫 (<span id="barcodeCount">0</span> 筆)</span>
+          </h4>
+          <button onclick="promptAddNewBarcode()" class="text-[11px] text-emerald-600 font-bold hover:underline">
+            + 手動新增
+          </button>
+        </div>
+        <div id="barcodeListContainer" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 text-xs">
+          <!-- 動態渲染已記憶的條碼品項 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模態框：通知與預警中心 -->
+  <div id="modalAlerts" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-bell text-emerald-600"></i>
+          <h3 class="text-sm font-bold text-slate-800">通知與庫存預警中心</h3>
+        </div>
+        <button onclick="closeAlertsModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="my-4 space-y-2.5 max-h-72 overflow-y-auto pr-1" id="alertsList">
+        <!-- 動態渲染預警事項 -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex flex-col gap-2">
+        <button onclick="copyLineReport()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-xs">
+          <i class="fa-brands fa-line text-sm"></i>
+          <span>複製 LINE 每日晨間通報格式</span>
+        </button>
+        <button onclick="addAllLowStockToShopping()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cart-plus text-xs"></i>
+          <span>一鍵將所有缺貨食材加入採買清單</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 吐司通知 (Toast Notification) -->
+  <div id="toast" class="fixed top-5 z-50 bg-slate-900/95 backdrop-blur-md text-white text-xs font-medium px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMsg">操作成功</span>
+  </div>
+
+  <script>
+    // 1. 初始化資料庫與本地儲存鍵
+    const STORAGE_ITEMS_KEY = 'smart_fridge_items_v2';
+    const STORAGE_BARCODE_KEY = 'smart_fridge_barcodes_v2';
+    const STORAGE_SHOPPING_KEY = 'smart_fridge_shopping_v2';
+
+    // 台灣常見條碼初始庫 (包含本土大廠)
+    const DEFAULT_BARCODES = {
+      '4710018112003': { name: '義美全脂鮮奶 936ml', zone: 'fridge', emoji: '🥛', unit: '瓶', safeDays: 12, minQty: 1 },
+      '4710088411234': { name: '統一純喫茶紅茶 650ml', zone: 'fridge', emoji: '🧃', unit: '瓶', safeDays: 15, minQty: 1 },
+      '4710199101121': { name: '桂冠魚餃 100g', zone: 'freezer', emoji: '🥟', unit: '盒', safeDays: 180, minQty: 2 },
+      '4711234567890': { name: '大成冷藏嫩雞胸肉', zone: 'fridge', emoji: '🥩', unit: '包', safeDays: 4, minQty: 2 },
+      '4710022020202': { name: '金蘭純釀醬油 590ml', zone: 'pantry', emoji: '🥫', unit: '瓶', safeDays: 365, minQty: 1 },
+      '4710085121013': { name: '光泉原味優酪乳 500ml', zone: 'fridge', emoji: '🥛', unit: '瓶', safeDays: 16, minQty: 1 }
+    };
+
+    const today = new Date();
+    const addDays = (d, n) => {
+      const target = new Date(d);
+      target.setDate(target.getDate() + n);
+      return target.toISOString().split('T')[0];
+    };
+
+    const DEFAULT_ITEMS = [
+      { id: 'item_1', name: '義美全脂鮮奶 936ml', zone: 'fridge', emoji: '🥛', qty: 1, unit: '瓶', minQty: 1, expiry: addDays(today, 2), barcode: '4710018112003', createdAt: Date.now() },
+      { id: 'item_2', name: '洗選紅殼雞蛋 10入', zone: 'fridge', emoji: '🥚', qty: 2, unit: '盒', minQty: 1, expiry: addDays(today, 10), barcode: '', createdAt: Date.now() - 10000 },
+      { id: 'item_3', name: '桂冠魚餃', zone: 'freezer', emoji: '🥟', qty: 0, unit: '盒', minQty: 1, expiry: addDays(today, 60), barcode: '4710199101121', createdAt: Date.now() - 20000 },
+      { id: 'item_4', name: '鮮嫩牛里肌肉片', zone: 'freezer', emoji: '🥩', qty: 2, unit: '包', minQty: 1, expiry: addDays(today, -1), barcode: '', createdAt: Date.now() - 30000 },
+      { id: 'item_5', name: '高山高麗菜 半顆', zone: 'fridge', emoji: '🥬', qty: 1, unit: '顆', minQty: 1, expiry: addDays(today, 1), barcode: '', createdAt: Date.now() - 40000 },
+      { id: 'item_6', name: '金蘭醬油', zone: 'pantry', emoji: '🥫', qty: 1, unit: '瓶', minQty: 1, expiry: addDays(today, 90), barcode: '4710022020202', createdAt: Date.now() - 50000 },
+    ];
+
+    // 全域狀態
+    let items = JSON.parse(localStorage.getItem(STORAGE_ITEMS_KEY)) || DEFAULT_ITEMS;
+    let barcodes = JSON.parse(localStorage.getItem(STORAGE_BARCODE_KEY)) || DEFAULT_BARCODES;
+    let shoppingList = JSON.parse(localStorage.getItem(STORAGE_SHOPPING_KEY)) || [
+      { id: 'shop_1', name: '純喫茶紅茶', qty: 2, unit: '瓶', checked: false }
+    ];
+
+    let currentZone = 'all';
+    let currentFilterStatus = null;
+    let html5QrCodeScanner = null;
+
+    // 2. 生命週期初始化與 PWA 註冊
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('itemExpiry').value = addDays(today, 7);
+      
+      document.getElementById('quickBarcodeSelect').addEventListener('change', (e) => {
+        if(e.target.value) {
+          document.getElementById('manualBarcodeInput').value = e.target.value;
+        }
+      });
+
+      document.getElementById('btnOpenAlerts').addEventListener('click', openAlertsModal);
+
+      // 動態產生 PWA Manifest
+      setupPwaManifest();
+
+      renderAll();
+      updateMorningDigest();
+    });
+
+    // 聲音效果 (Web Audio API)
+    function playBeepSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // 880Hz A5 音
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      } catch (e) {
+        console.log('Audio Context unsupported or muted', e);
+      }
+    }
+
+    // 動態 PWA Manifest 支援
+    function setupPwaManifest() {
+      const manifest = {
+        name: "智慧冰箱庫存管家",
+        short_name: "智慧冰箱",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#10b981",
+        icons: [
+          {
+            src: "https://placehold.co/192x192/10b981/ffffff?text=Fridge",
+            sizes: "192x192",
+            type: "image/png"
+          },
+          {
+            src: "https://placehold.co/512x512/10b981/ffffff?text=SmartFridge",
+            sizes: "512x512",
+            type: "image/png"
+          }
+        ]
+      };
+      const stringManifest = JSON.stringify(manifest);
+      const blob = new Blob([stringManifest], {type: 'application/json'});
+      const manifestURL = URL.createObjectURL(blob);
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = manifestURL;
+      document.head.appendChild(link);
+    }
+
+    // 3. 資料持久化函式
+    function persistItems() {
+      localStorage.setItem(STORAGE_ITEMS_KEY, JSON.stringify(items));
+      renderAll();
+      updateMorningDigest();
+    }
+
+    function persistBarcodes() {
+      localStorage.setItem(STORAGE_BARCODE_KEY, JSON.stringify(barcodes));
+      renderBarcodeList();
+    }
+
+    function persistShopping() {
+      localStorage.setItem(STORAGE_SHOPPING_KEY, JSON.stringify(shoppingList));
+      renderShoppingView();
+    }
+
+    // 4. 計算與狀態過濾器
+    function getDaysDiff(targetDateStr) {
+      const target = new Date(targetDateStr + 'T00:00:00');
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      const diffTime = target - now;
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function calculateStats() {
+      let expiring = 0;
+      let expired = 0;
+      let lowStock = 0;
+
+      items.forEach(item => {
+        const days = getDaysDiff(item.expiry);
+        if (days < 0) {
+          expired++;
+        } else if (days <= 3) {
+          expiring++;
+        }
+        if (item.qty <= (item.minQty || 1)) {
+          lowStock++;
+        }
+      });
+
+      document.getElementById('statExpiring').innerText = expiring;
+      document.getElementById('statExpired').innerText = expired;
+      document.getElementById('statLowStock').innerText = lowStock;
+
+      const totalAlerts = expiring + expired + lowStock;
+      const alertBadge = document.getElementById('alertBadge');
+      if (totalAlerts > 0) {
+        alertBadge.classList.remove('hidden');
+      } else {
+        alertBadge.classList.add('hidden');
+      }
+
+      document.getElementById('countAll').innerText = items.length;
+      document.getElementById('countFridge').innerText = items.filter(i => i.zone === 'fridge').length;
+      document.getElementById('countFreezer').innerText = items.filter(i => i.zone === 'freezer').length;
+      document.getElementById('countPantry').innerText = items.filter(i => i.zone === 'pantry').length;
+    }
+
+    // 晨報推播文字生成
+    function updateMorningDigest() {
+      const expiring = items.filter(i => {
+        const d = getDaysDiff(i.expiry);
+        return d >= 0 && d <= 3;
+      });
+      const expired = items.filter(i => getDaysDiff(i.expiry) < 0);
+      const lowStock = items.filter(i => i.qty <= (i.minQty || 1));
+
+      const summaryElement = document.getElementById('digestSummaryText');
+      if (expiring.length === 0 && expired.length === 0 && lowStock.length === 0) {
+        summaryElement.innerText = "✨ 冰箱狀態健康！目前無過期食材，各項備料存量皆充足。";
+      } else {
+        const parts = [];
+        if (expired.length > 0) parts.push(`⚠️ ${expired.length} 項已過期 (${expired.map(i=>i.name).slice(0,2).join('、')}${expired.length>2?'等':''})`);
+        if (expiring.length > 0) parts.push(`⏰ ${expiring.length} 項即將到期 (${expiring.map(i=>i.name).slice(0,2).join('、')}${expiring.length>2?'等':''})`);
+        if (lowStock.length > 0) parts.push(`🛒 ${lowStock.length} 項需要補貨 (${lowStock.map(i=>i.name).slice(0,2).join('、')}${lowStock.length>2?'等':''})`);
+        summaryElement.innerText = parts.join(' ｜ ');
+      }
+    }
+
+    function copyLineReport() {
+      const expiring = items.filter(i => {
+        const d = getDaysDiff(i.expiry);
+        return d >= 0 && d <= 3;
+      });
+      const expired = items.filter(i => getDaysDiff(i.expiry) < 0);
+      const lowStock = items.filter(i => i.qty <= (i.minQty || 1));
+
+      let msg = `【智慧冰箱 今日庫存通報】\n📅 日期：${new Date().toLocaleDateString('zh-TW')}\n`;
+      if (expired.length > 0) {
+        msg += `\n❌ 已過期食材：\n` + expired.map(i => ` • ${i.name} (剩餘 ${i.qty}${i.unit}，過期 ${Math.abs(getDaysDiff(i.expiry))} 天)`).join('\n') + '\n';
+      }
+      if (expiring.length > 0) {
+        msg += `\n⚠️ 3天內即將到期：\n` + expiring.map(i => ` • ${i.name} (剩餘 ${i.qty}${i.unit}，倒數 ${getDaysDiff(i.expiry)} 天)`).join('\n') + '\n';
+      }
+      if (lowStock.length > 0) {
+        msg += `\n🛒 低庫存待補貨：\n` + lowStock.map(i => ` • ${i.name} (現存 ${i.qty}${i.unit} / 安全存量 ${i.minQty})`).join('\n') + '\n';
+      }
+      if (expiring.length === 0 && expired.length === 0 && lowStock.length === 0) {
+        msg += `\n✨ 所有食材狀態良好，無需補貨！\n`;
+      }
+      msg += `\n點擊查看/更新家庭冰箱清單。`;
+
+      // 複製至剪貼簿
+      const textArea = document.createElement("textarea");
+      textArea.value = msg;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('已複製 LINE 晨報通報格式！', 'success');
+      } catch (err) {
+        showToast('複製失敗，請手動複製', 'warning');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // 5. 畫面渲染
+    function renderAll() {
+      calculateStats();
+      renderItems();
+      renderShoppingBadge();
+    }
+
+    function renderItems() {
+      const listContainer = document.getElementById('itemList');
+      const emptyState = document.getElementById('emptyState');
+      const searchKeyword = document.getElementById('searchInput').value.trim().toLowerCase();
+      const sortBy = document.getElementById('sortBy').value;
+
+      let filtered = items.filter(item => {
+        if (currentZone !== 'all' && item.zone !== currentZone) return false;
+        if (searchKeyword) {
+          const matchName = item.name.toLowerCase().includes(searchKeyword);
+          const matchBarcode = item.barcode && item.barcode.includes(searchKeyword);
+          if (!matchName && !matchBarcode) return false;
+        }
+        if (currentFilterStatus === 'expiring') {
+          const d = getDaysDiff(item.expiry);
+          return d >= 0 && d <= 3;
+        }
+        if (currentFilterStatus === 'expired') {
+          return getDaysDiff(item.expiry) < 0;
+        }
+        if (currentFilterStatus === 'lowStock') {
+          return item.qty <= (item.minQty || 1);
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortBy === 'expiryAsc') return new Date(a.expiry) - new Date(b.expiry);
+        if (sortBy === 'expiryDesc') return new Date(b.expiry) - new Date(a.expiry);
+        if (sortBy === 'qtyAsc') return a.qty - b.qty;
+        if (sortBy === 'newest') return (b.createdAt || 0) - (a.createdAt || 0);
+        return 0;
+      });
+
+      listContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      filtered.forEach(item => {
+        const days = getDaysDiff(item.expiry);
+        let badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+        let badgeText = `剩 ${days} 天`;
+
+        if (days < 0) {
+          badgeClass = 'bg-rose-50 text-rose-800 border-rose-300 font-bold animate-pulse';
+          badgeText = `已過期 ${Math.abs(days)} 天`;
+        } else if (days === 0) {
+          badgeClass = 'bg-amber-100 text-amber-800 border-amber-300 font-bold';
+          badgeText = '今天到期！';
+        } else if (days <= 3) {
+          badgeClass = 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
+          badgeText = `剩 ${days} 天到期`;
+        }
+
+        const isLow = item.qty <= (item.minQty || 1);
+        const zoneIcons = { fridge: '❄️ 冷藏', freezer: '🧊 冷凍', pantry: '🍞 常溫' };
+
+        const card = document.createElement('div');
+        card.className = 'bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center justify-between gap-3 hover:border-slate-300 transition';
+        card.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl flex-shrink-0 border border-slate-200/60">
+              ${item.emoji || '📦'}
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h4 class="text-xs font-bold text-slate-800 truncate">${item.name}</h4>
+                ${item.barcode ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-mono tracking-tighter"><i class="fa-solid fa-barcode text-[9px] mr-0.5"></i>${item.barcode.slice(-4)}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-2 mt-1 flex-wrap">
+                <span class="text-[10px] text-slate-400 font-medium">${zoneIcons[item.zone] || '常溫'}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full border ${badgeClass}">
+                  ${badgeText}
+                </span>
+                ${isLow ? `<span class="text-[10px] bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 font-bold"><i class="fa-solid fa-bell text-[9px] mr-1"></i>低庫存</span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2.5 flex-shrink-0">
+            <div class="flex items-center bg-slate-100/80 rounded-xl p-1 border border-slate-200/80">
+              <button onclick="updateQty('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white shadow-xs text-slate-700 hover:bg-slate-50 active:scale-90 text-xs">
+                <i class="fa-solid fa-minus"></i>
+              </button>
+              <div class="px-2 text-center min-w-[36px]">
+                <span class="text-xs font-black ${item.qty === 0 ? 'text-rose-600 font-extrabold' : 'text-slate-800'}">${item.qty}</span>
+                <span class="text-[10px] text-slate-400 block -mt-1 font-medium">${item.unit || '個'}</span>
+              </div>
+              <button onclick="updateQty('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center rounded-lg bg-white shadow-xs text-slate-700 hover:bg-slate-50 active:scale-90 text-xs">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-0.5">
+              <button onclick="openEditItem('${item.id}')" title="編輯" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition">
+                <i class="fa-solid fa-pen text-xs"></i>
+              </button>
+              <button onclick="deleteItem('${item.id}')" title="刪除" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    function updateQty(id, delta) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      const newQty = Math.max(0, item.qty + delta);
+      item.qty = newQty;
+
+      if (newQty === 0) {
+        showToast(`⚠️ 「${item.name}」已用完！可前往採買清單補貨。`, 'warning');
+      } else if (newQty <= (item.minQty || 1)) {
+        showToast(`🔔 「${item.name}」庫存偏低（剩餘 ${newQty} ${item.unit}）`, 'warning');
+      }
+      persistItems();
+    }
+
+    function changeCategory(zone) {
+      currentZone = zone;
+      document.querySelectorAll('.zone-tab').forEach(btn => {
+        if (btn.getAttribute('data-zone') === zone) {
+          btn.className = 'zone-tab px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition bg-slate-900 text-white shadow-xs';
+        } else {
+          btn.className = 'zone-tab px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition bg-white text-slate-600 border border-slate-200/60 hover:bg-slate-200';
+        }
+      });
+      renderItems();
+    }
+
+    function setFilterStatus(status) {
+      currentFilterStatus = status;
+      document.getElementById('btnResetFilter').classList.remove('hidden');
+      renderItems();
+      showToast(`已套用「${status === 'expiring' ? '即將到期' : status === 'expired' ? '已過期' : '缺貨低庫存'}」篩選`, 'info');
+    }
+
+    function resetFilter() {
+      currentFilterStatus = null;
+      document.getElementById('btnResetFilter').classList.add('hidden');
+      renderItems();
+    }
+
+    // 6. html5-qrcode 相機條碼掃描模組
+    function openScannerModal() {
+      document.getElementById('modalScanner').classList.remove('hidden');
+      document.getElementById('manualBarcodeInput').value = '';
+      document.getElementById('quickBarcodeSelect').value = '';
+
+      startCameraScanning();
+    }
+
+    function startCameraScanning() {
+      if (typeof Html5Qrcode === "undefined") {
+        console.warn("Html5Qrcode not loaded, fallback to manual.");
+        return;
+      }
+
+      html5QrCodeScanner = new Html5Qrcode("scannerReader");
+      const config = {
+        fps: 15,
+        qrbox: { width: 250, height: 160 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.UPC_A
+        ]
+      };
+
+      html5QrCodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText, decodedResult) => {
+          playBeepSound();
+          closeScannerModal();
+          processBarcodeIdentified(decodedText);
+        },
+        (errorMessage) => {
+          // 掃描過程中持續偵測，忽略逐幀無條碼警告
+        }
+      ).catch((err) => {
+        console.log("無法啟動相機 (可能是桌機無鏡頭或權限拒絕):", err);
+      });
+    }
+
+    function stopCameraScanning() {
+      if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => {
+          html5QrCodeScanner.clear();
+          html5QrCodeScanner = null;
+        }).catch(err => console.log("Stop camera error", err));
+      }
+    }
+
+    function closeScannerModal() {
+      stopCameraScanning();
+      document.getElementById('modalScanner').classList.add('hidden');
+    }
+
+    function handleManualScanSubmit() {
+      const code = document.getElementById('manualBarcodeInput').value.trim();
+      if (!code) {
+        showToast('請先輸入或選擇條碼！', 'warning');
+        return;
+      }
+      playBeepSound();
+      closeScannerModal();
+      processBarcodeIdentified(code);
+    }
+
+    // 支援圖片檔案條碼辨識
+    function scanBarcodeFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const html5QrCode = new Html5Qrcode("scannerReader");
+      html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+          playBeepSound();
+          closeScannerModal();
+          processBarcodeIdentified(decodedText);
+        })
+        .catch(err => {
+          showToast('未能從圖片辨識出清晰的 EAN 條碼，請改用手動輸入', 'warning');
+        });
+    }
+
+    function processBarcodeIdentified(code) {
+      const product = barcodes[code];
+
+      openItemModal();
+      document.getElementById('itemBarcode').value = code;
+      document.getElementById('displayBarcode').innerText = code;
+      document.getElementById('barcodeNotice').classList.remove('hidden');
+
+      if (product) {
+        document.getElementById('itemName').value = product.name;
+        document.getElementById('itemZone').value = product.zone || 'fridge';
+        document.getElementById('itemEmoji').value = product.emoji || '📦';
+        document.getElementById('itemUnit').value = product.unit || '瓶';
+        document.getElementById('itemMinQty').value = product.minQty || 1;
+        document.getElementById('itemExpiry').value = addDays(today, product.safeDays || 7);
+        showToast(`🎉 成功辨識台灣商品：${product.name}`, 'success');
+      } else {
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemExpiry').value = addDays(today, 7);
+        showToast(`條碼 ${code} 尚未登錄，輸入後系統將自動學習記住！`, 'info');
+      }
+    }
+
+    // 7. 食材表單管理
+    function openItemModal() {
+      document.getElementById('modalTitle').innerText = '新增食材入庫';
+      document.getElementById('itemForm').reset();
+      document.getElementById('editItemId').value = '';
+      document.getElementById('itemBarcode').value = '';
+      document.getElementById('barcodeNotice').classList.add('hidden');
+      document.getElementById('itemEmoji').value = '🥛';
+      document.getElementById('itemExpiry').value = addDays(today, 7);
+      document.getElementById('itemQty').value = 1;
+      document.getElementById('itemUnit').value = '瓶';
+      document.getElementById('itemMinQty').value = 1;
+      document.getElementById('modalItem').classList.remove('hidden');
+    }
+
+    function openEditItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('modalTitle').innerText = '編輯食材資料';
+      document.getElementById('editItemId').value = item.id;
+      document.getElementById('itemName').value = item.name;
+      document.getElementById('itemEmoji').value = item.emoji || '📦';
+      document.getElementById('itemZone').value = item.zone;
+      document.getElementById('itemExpiry').value = item.expiry;
+      document.getElementById('itemQty').value = item.qty;
+      document.getElementById('itemUnit').value = item.unit || '瓶';
+      document.getElementById('itemMinQty').value = item.minQty !== undefined ? item.minQty : 1;
+      document.getElementById('itemBarcode').value = item.barcode || '';
+
+      if (item.barcode) {
+        document.getElementById('displayBarcode').innerText = item.barcode;
+        document.getElementById('barcodeNotice').classList.remove('hidden');
+      } else {
+        document.getElementById('barcodeNotice').classList.add('hidden');
+      }
+
+      document.getElementById('modalItem').classList.remove('hidden');
+    }
+
+    function closeItemModal() {
+      document.getElementById('modalItem').classList.add('hidden');
+    }
+
+    function selectEmoji(emoji) {
+      document.getElementById('itemEmoji').value = emoji;
+    }
+
+    function saveItem(event) {
+      event.preventDefault();
+      const editId = document.getElementById('editItemId').value;
+      const name = document.getElementById('itemName').value.trim();
+      const emoji = document.getElementById('itemEmoji').value.trim() || '📦';
+      const zone = document.getElementById('itemZone').value;
+      const expiry = document.getElementById('itemExpiry').value;
+      const qty = parseInt(document.getElementById('itemQty').value) || 0;
+      const unit = document.getElementById('itemUnit').value;
+      const minQty = parseInt(document.getElementById('itemMinQty').value) || 1;
+      const barcode = document.getElementById('itemBarcode').value.trim();
+
+      // 條碼資料庫自動學習機制
+      if (barcode) {
+        barcodes[barcode] = {
+          name: name,
+          zone: zone,
+          emoji: emoji,
+          unit: unit,
+          minQty: minQty,
+          safeDays: Math.max(1, getDaysDiff(expiry))
+        };
+        persistBarcodes();
+      }
+
+      if (editId) {
+        const idx = items.findIndex(i => i.id === editId);
+        if (idx !== -1) {
+          items[idx] = { ...items[idx], name, emoji, zone, expiry, qty, unit, minQty, barcode };
+          showToast(`已更新「${name}」！`, 'success');
+        }
+      } else {
+        const newItem = {
+          id: 'item_' + Date.now(),
+          name,
+          emoji,
+          zone,
+          expiry,
+          qty,
+          unit,
+          minQty,
+          barcode,
+          createdAt: Date.now()
+        };
+        items.unshift(newItem);
+        showToast(`「${name}」已成功入庫！`, 'success');
+      }
+
+      persistItems();
+      closeItemModal();
+    }
+
+    function deleteItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      items = items.filter(i => i.id !== id);
+      persistItems();
+      showToast(`已刪除「${item.name}」`, 'info');
+    }
+
+    // 8. 通知與預警中心 Modal 邏輯
+    function openAlertsModal() {
+      const alertsContainer = document.getElementById('alertsList');
+      alertsContainer.innerHTML = '';
+
+      const expiringItems = items.filter(i => {
+        const d = getDaysDiff(i.expiry);
+        return d >= 0 && d <= 3;
+      });
+      const expiredItems = items.filter(i => getDaysDiff(i.expiry) < 0);
+      const lowStockItems = items.filter(i => i.qty <= (i.minQty || 1));
+
+      if (expiringItems.length === 0 && expiredItems.length === 0 && lowStockItems.length === 0) {
+        alertsContainer.innerHTML = `
+          <div class="text-center py-8 text-slate-400">
+            <i class="fa-regular fa-circle-check text-3xl text-emerald-500 mb-2"></i>
+            <p class="text-xs">太棒了！目前沒有即將過期或缺貨的食材。</p>
+          </div>
+        `;
+      } else {
+        expiredItems.forEach(i => {
+          alertsContainer.innerHTML += `
+            <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${i.emoji || '📦'}</span>
+                <div>
+                  <h5 class="text-xs font-bold text-rose-800">${i.name} (已過期 ${Math.abs(getDaysDiff(i.expiry))} 天)</h5>
+                  <p class="text-[10px] text-rose-600">效期：${i.expiry} ｜ 剩餘：${i.qty} ${i.unit}</p>
+                </div>
+              </div>
+              <button onclick="deleteItem('${i.id}'); openAlertsModal();" class="text-xs bg-rose-200 hover:bg-rose-300 text-rose-800 px-2 py-1 rounded font-bold">清理</button>
+            </div>
+          `;
+        });
+
+        expiringItems.forEach(i => {
+          const d = getDaysDiff(i.expiry);
+          alertsContainer.innerHTML += `
+            <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${i.emoji || '📦'}</span>
+                <div>
+                  <h5 class="text-xs font-bold text-amber-800">${i.name} (剩 ${d} 天到期)</h5>
+                  <p class="text-[10px] text-amber-600">請盡早食用 ｜ 剩餘：${i.qty} ${i.unit}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        lowStockItems.forEach(i => {
+          alertsContainer.innerHTML += `
+            <div class="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${i.emoji || '📦'}</span>
+                <div>
+                  <h5 class="text-xs font-bold text-blue-800">${i.name} (低庫存)</h5>
+                  <p class="text-[10px] text-blue-600">目前僅剩 ${i.qty} ${i.unit} (安全存量: ${i.minQty})</p>
+                </div>
+              </div>
+              <button onclick="addSingleToShopping('${i.name}', '${i.unit}')" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded shadow-xs flex items-center gap-1 font-bold">
+                <i class="fa-solid fa-plus text-[10px]"></i> 待買
+              </button>
+            </div>
+          `;
+        });
+      }
+
+      document.getElementById('modalAlerts').classList.remove('hidden');
+    }
+
+    function closeAlertsModal() {
+      document.getElementById('modalAlerts').classList.add('hidden');
+    }
+
+    // 9. 採買清單聯動
+    function addAllLowStockToShopping() {
+      const lowStockItems = items.filter(i => i.qty <= (i.minQty || 1));
+      if (lowStockItems.length === 0) {
+        showToast('目前沒有低庫存食材需補貨！', 'info');
+        return;
+      }
+      let addedCount = 0;
+      lowStockItems.forEach(item => {
+        if (!shoppingList.some(s => s.name === item.name)) {
+          shoppingList.push({
+            id: 'shop_' + Date.now() + Math.random(),
+            name: item.name,
+            qty: 1,
+            unit: item.unit || '瓶',
+            checked: false,
+            sourceBarcode: item.barcode || ''
+          });
+          addedCount++;
+        }
+      });
+      persistShopping();
+      closeAlertsModal();
+      showToast(`已將 ${addedCount} 項低庫存食材匯入採買清單！`, 'success');
+    }
+
+    function addSingleToShopping(name, unit) {
+      if (!shoppingList.some(s => s.name === name)) {
+        shoppingList.push({
+          id: 'shop_' + Date.now(),
+          name: name,
+          qty: 1,
+          unit: unit || '瓶',
+          checked: false
+        });
+        persistShopping();
+        showToast(`已將「${name}」加入待買清單！`, 'success');
+      } else {
+        showToast(`「${name}」已在待買清單中！`, 'info');
+      }
+    }
+
+    function addShoppingItemPrompt() {
+      const name = prompt('請輸入要採買的食材品名：');
+      if (name && name.trim()) {
+        shoppingList.push({
+          id: 'shop_' + Date.now(),
+          name: name.trim(),
+          qty: 1,
+          unit: '個',
+          checked: false
+        });
+        persistShopping();
+        showToast(`已加入「${name.trim()}」`, 'success');
+      }
+    }
+
+    function toggleShoppingItem(id) {
+      const item = shoppingList.find(s => s.id === id);
+      if (item) {
+        item.checked = !item.checked;
+        persistShopping();
+      }
+    }
+
+    function deleteShoppingItem(id) {
+      shoppingList = shoppingList.filter(s => s.id !== id);
+      persistShopping();
+    }
+
+    function restockToFridge(shopId) {
+      const shopItem = shoppingList.find(s => s.id === shopId);
+      if (!shopItem) return;
+
+      const existing = items.find(i => i.name.toLowerCase() === shopItem.name.toLowerCase());
+      if (existing) {
+        existing.qty += shopItem.qty || 1;
+        existing.expiry = addDays(today, 7);
+      } else {
+        items.unshift({
+          id: 'item_' + Date.now(),
+          name: shopItem.name,
+          emoji: '🛒',
+          zone: 'fridge',
+          qty: shopItem.qty || 1,
+          unit: shopItem.unit || '瓶',
+          minQty: 1,
+          expiry: addDays(today, 7),
+          barcode: shopItem.sourceBarcode || '',
+          createdAt: Date.now()
+        });
+      }
+
+      shoppingList = shoppingList.filter(s => s.id !== shopId);
+      persistItems();
+      persistShopping();
+      showToast(`🎉 「${shopItem.name}」已回補至冰箱冷藏室！`, 'success');
+    }
+
+    function renderShoppingView() {
+      const container = document.getElementById('shoppingListContainer');
+      const empty = document.getElementById('shoppingEmpty');
+      renderShoppingBadge();
+
+      container.innerHTML = '';
+      if (shoppingList.length === 0) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      shoppingList.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `p-3.5 bg-white rounded-2xl border ${item.checked ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'} shadow-xs flex items-center justify-between transition`;
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <button onclick="toggleShoppingItem('${item.id}')" class="w-6 h-6 rounded-lg flex items-center justify-center border ${item.checked ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 text-transparent'}">
+              <i class="fa-solid fa-check text-xs"></i>
+            </button>
+            <span class="text-xs font-bold ${item.checked ? 'line-through text-slate-400' : 'text-slate-800'}">${item.name}</span>
+            <span class="text-[11px] text-slate-400 font-medium">(${item.qty} ${item.unit})</span>
+          </div>
+          <div class="flex items-center gap-2">
+            ${item.checked ? `
+              <button onclick="restockToFridge('${item.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-xl transition shadow-xs flex items-center gap-1">
+                <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i> 回補冰箱
+              </button>
+            ` : ''}
+            <button onclick="deleteShoppingItem('${item.id}')" class="text-slate-400 hover:text-rose-500 p-1.5">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderShoppingBadge() {
+      const unchecked = shoppingList.filter(s => !s.checked).length;
+      const badge = document.getElementById('shoppingBadge');
+      if (unchecked > 0) {
+        badge.innerText = unchecked;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    // 10. 備份匯出入與自建條碼管理
+    function openSettingsModal() {
+      renderBarcodeList();
+      document.getElementById('modalSettings').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('modalSettings').classList.add('hidden');
+    }
+
+    function renderBarcodeList() {
+      const container = document.getElementById('barcodeListContainer');
+      const countSpan = document.getElementById('barcodeCount');
+      const keys = Object.keys(barcodes);
+      countSpan.innerText = keys.length;
+      container.innerHTML = '';
+
+      if (keys.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-center py-3">尚未建立任何自訂條碼</p>`;
+        return;
+      }
+
+      keys.forEach(code => {
+        const item = barcodes[code];
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/70';
+        row.innerHTML = `
+          <div class="min-w-0 pr-2">
+            <div class="font-bold text-slate-800 truncate">${item.emoji || '📦'} ${item.name}</div>
+            <div class="text-[10px] text-slate-400 font-mono tracking-tight">${code} ｜ 建議效期: ${item.safeDays || 7} 天</div>
+          </div>
+          <button onclick="deleteLearnedBarcode('${code}')" class="text-slate-400 hover:text-rose-500 p-1 text-xs">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function deleteLearnedBarcode(code) {
+      delete barcodes[code];
+      persistBarcodes();
+      showToast(`已從條碼庫移除 ${code}`, 'info');
+    }
+
+    function promptAddNewBarcode() {
+      const code = prompt('請輸入要建立的台灣 13 碼條碼 (例如: 471xxxxxxxxx)：');
+      if (!code || code.trim().length < 5) return;
+      const name = prompt('請輸入對應的商品品名 (例如: 光泉鮮奶 936ml)：');
+      if (!name || !name.trim()) return;
+
+      barcodes[code.trim()] = {
+        name: name.trim(),
+        zone: 'fridge',
+        emoji: '🥛',
+        unit: '瓶',
+        minQty: 1,
+        safeDays: 14
+      };
+      persistBarcodes();
+      showToast(`成功新增條碼：${name.trim()}`, 'success');
+    }
+
+    // JSON 備份匯出
+    function exportDataJSON() {
+      const exportObject = {
+        app: "SmartFridge_TW",
+        version: "2.0",
+        exportDate: new Date().toISOString(),
+        items: items,
+        barcodes: barcodes,
+        shoppingList: shoppingList
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `智慧冰箱備份_${addDays(today, 0)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast('備份檔案已成功下載！', 'success');
+    }
+
+    // JSON 備份匯入還原
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.items && Array.isArray(imported.items)) {
+            items = imported.items;
+            if (imported.barcodes) barcodes = { ...barcodes, ...imported.barcodes };
+            if (imported.shoppingList) shoppingList = imported.shoppingList;
+
+            persistItems();
+            persistBarcodes();
+            persistShopping();
+            closeSettingsModal();
+            showToast('🎉 資料庫還原成功！已更新全數庫存。', 'success');
+          } else {
+            showToast('匯入失敗：檔案格式不符！', 'warning');
+          }
+        } catch (err) {
+          showToast('無法解析此 JSON 備份檔案', 'warning');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // 11. 頁籤切換
+    function switchTab(tab) {
+      if (tab === 'fridge') {
+        document.getElementById('viewFridge').classList.remove('hidden');
+        document.getElementById('viewShopping').classList.add('hidden');
+        document.getElementById('navFridge').className = 'flex flex-col items-center gap-1 text-emerald-600 font-bold text-[11px]';
+        document.getElementById('navShopping').className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-bold text-[11px] relative';
+      } else {
+        document.getElementById('viewFridge').classList.add('hidden');
+        document.getElementById('viewShopping').classList.remove('hidden');
+        document.getElementById('navFridge').className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-bold text-[11px]';
+        document.getElementById('navShopping').className = 'flex flex-col items-center gap-1 text-emerald-600 font-bold text-[11px] relative';
+        renderShoppingView();
+      }
+    }
+
+    // 12. 吐司通知小幫手
+    let toastTimeout;
+    function showToast(msg, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = msg;
+      if (type === 'success') {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+      } else if (type === 'warning') {
+        toastIcon.className = 'fa-solid fa-triangle-exclamation text-amber-400';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-info text-blue-400';
+      }
+
+      toast.classList.remove('-translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('-translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
