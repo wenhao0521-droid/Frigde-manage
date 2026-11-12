@@ -43,10 +43,16 @@
     <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-2">
         <i class="fa-solid fa-kitchen-set text-xl text-emerald-200"></i>
-        <h1 class="text-lg font-bold tracking-wide">智慧冰箱管家</h1>
+        <div>
+          <h1 class="text-base font-bold tracking-wide leading-tight">智慧冰箱管家</h1>
+          <div id="syncStatusBar" class="flex items-center space-x-1 text-[10px] text-emerald-100">
+            <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse"></span>
+            <span id="syncText">正在連線家庭雲端...</span>
+          </div>
+        </div>
       </div>
       <div class="flex items-center space-x-2">
-        <button onclick="openSettingsModal()" class="p-2 text-emerald-100 hover:text-white rounded-full transition" title="條碼庫與設定">
+        <button onclick="openSettingsModal()" class="p-2 text-emerald-100 hover:text-white rounded-full transition" title="家庭共享與條碼庫">
           <i class="fa-solid fa-gear text-lg"></i>
         </button>
         <button onclick="openAddModal()" class="bg-white text-emerald-700 px-3 py-1.5 rounded-lg text-sm font-semibold shadow hover:bg-emerald-50 active:scale-95 transition flex items-center space-x-1">
@@ -79,9 +85,9 @@
       <div>
         <h3 class="font-bold text-base flex items-center gap-1.5">
           <span>庫存智慧更新</span>
-          <span class="bg-emerald-700/60 text-[10px] px-1.5 py-0.5 rounded-full font-normal">精準聲控</span>
+          <span class="bg-emerald-700/60 text-[10px] px-1.5 py-0.5 rounded-full font-normal">家庭同步</span>
         </h3>
-        <p class="text-xs text-emerald-100 mt-0.5">支援品牌名語音（如：林鳳營牛奶剩兩瓶）與掃碼</p>
+        <p class="text-xs text-emerald-100 mt-0.5">支援品牌語音（如：林鳳營牛奶剩兩瓶）與掃碼</p>
       </div>
       <button onclick="startScannerModal()" class="bg-white text-emerald-700 hover:bg-emerald-50 font-bold px-3 py-2 rounded-xl text-sm shadow flex items-center space-x-1.5 active:scale-95 transition">
         <i class="fa-solid fa-barcode text-base"></i>
@@ -104,7 +110,7 @@
     <!-- 採買清單分頁 -->
     <div id="shoppingSection" class="hidden space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="font-bold text-slate-700 text-sm">待採買補貨清單</h3>
+        <h3 class="font-bold text-slate-700 text-sm">家庭共享採買清單</h3>
         <button onclick="clearCompletedShopping()" class="text-xs text-slate-500 hover:text-slate-700 underline">清除已買項目</button>
       </div>
       <div id="shoppingList" class="space-y-2"></div>
@@ -239,23 +245,42 @@
     </div>
   </div>
 
-  <!-- 彈窗：設定與自建條碼庫管理 -->
+  <!-- 彈窗：設定、家庭同步代碼與條碼庫 -->
   <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
     <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
       <div class="flex justify-between items-center pb-2 border-b">
-        <h3 class="font-bold text-slate-800 text-base">資料管理與條碼庫</h3>
+        <h3 class="font-bold text-slate-800 text-base">家庭雲端同步與設定</h3>
         <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <div class="space-y-2">
+      <!-- 家庭群組同步代碼設定 -->
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-emerald-900 flex items-center gap-1">
+            <i class="fa-solid fa-users text-emerald-600"></i> 家庭共享房間代碼
+          </h4>
+          <span class="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-semibold">多人即時同步中</span>
+        </div>
+        <p class="text-[11px] text-emerald-800 leading-relaxed">
+          家人手機只要開啟同一個網址並輸入相同的代碼，冰箱庫存與採買清單就會即時雙向同步！
+        </p>
+        <div class="flex space-x-1.5 pt-1">
+          <input type="text" id="familyCodeInput" placeholder="輸入英數字代碼，例如 huang-family" class="w-full text-xs border border-emerald-300 rounded-lg p-2 bg-white font-mono">
+          <button onclick="updateFamilyCode()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap shadow-sm">
+            切換代碼
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-1">
         <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">庫存清理</h4>
         <button onclick="clearAllInventory()" class="w-full py-2 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition">
-          <i class="fa-solid fa-trash-can"></i> 一鍵清空冰箱所有食材 (重新開始)
+          <i class="fa-solid fa-trash-can"></i> 一鍵清空冰箱所有食材 (同步清空)
         </button>
       </div>
 
       <div class="space-y-3 pt-2 border-t">
-        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">家庭備份與共享</h4>
+        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">手動備份</h4>
         <div class="grid grid-cols-2 gap-2">
           <button onclick="exportData()" class="py-2 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center space-x-1">
             <i class="fa-solid fa-download"></i>
@@ -271,10 +296,10 @@
 
       <div class="space-y-2 pt-2 border-t">
         <div class="flex justify-between items-center">
-          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">台灣商品條碼庫 (<span id="barcodeCount">0</span>)</h4>
-          <button onclick="resetToExpandedBarcodes()" class="text-[11px] text-emerald-600 hover:underline">載入更多預設條碼</button>
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">共享條碼庫 (<span id="barcodeCount">0</span>)</h4>
+          <button onclick="resetToExpandedBarcodes()" class="text-[11px] text-emerald-600 hover:underline">補齊預設條碼</button>
         </div>
-        <div id="barcodeListContainer" class="max-h-48 overflow-y-auto space-y-1.5 custom-scroll text-xs"></div>
+        <div id="barcodeListContainer" class="max-h-40 overflow-y-auto space-y-1.5 custom-scroll text-xs"></div>
       </div>
       <div class="pt-2">
         <button onclick="closeSettingsModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg">關閉</button>
@@ -283,6 +308,14 @@
   </div>
 
   <script>
+    // ==========================================
+    // Firebase 雲端即時資料庫設定
+    // ==========================================
+    const FIREBASE_DB_URL = "https://fridge-manage-73ab1-default-rtdb.asia-southeast1.firebasedatabase.app";
+    let familyRoomId = localStorage.getItem('smart_fridge_family_id') || "huang-family";
+    let lastCloudTimestamp = 0;
+    let isSyncing = false;
+
     const EXTENDED_TW_BARCODES = {
       "4710126532014": { name: "義美全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
       "4710126532021": { name: "義美低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
@@ -336,11 +369,127 @@
     let recognition = null;
     let isListening = false;
 
-    function saveAll() {
+    // 狀態指示器更新
+    function setSyncStatus(state, msg) {
+      const dot = document.getElementById('syncDot');
+      const text = document.getElementById('syncText');
+      if (state === 'online') {
+        dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-300";
+        text.textContent = msg || `家庭已連線 (${familyRoomId})`;
+      } else if (state === 'syncing') {
+        dot.className = "w-1.5 h-1.5 rounded-full bg-amber-300 animate-ping";
+        text.textContent = msg || "正在同步雲端資料...";
+      } else {
+        dot.className = "w-1.5 h-1.5 rounded-full bg-rose-400";
+        text.textContent = msg || "離線暫存模式 (網路異常)";
+      }
+    }
+
+    // 儲存到本地並立即推送至 Firebase 雲端
+    async function saveAll(pushToCloud = true) {
       localStorage.setItem('smart_fridge_inventory', JSON.stringify(inventory));
       localStorage.setItem('smart_fridge_barcodes', JSON.stringify(barcodeDb));
       localStorage.setItem('smart_fridge_shopping', JSON.stringify(shoppingList));
       render();
+
+      if (pushToCloud) {
+        await pushDataToFirebase();
+      }
+    }
+
+    // 推送資料到 Firebase
+    async function pushDataToFirebase() {
+      isSyncing = true;
+      setSyncStatus('syncing', '正在同步至家庭雲端...');
+      const now = Date.now();
+      lastCloudTimestamp = now;
+
+      // 過濾出使用者新增的自建條碼，避免整個預設大清單每次重複上傳
+      const customBarcodes = {};
+      Object.entries(barcodeDb).forEach(([code, info]) => {
+        if (!EXTENDED_TW_BARCODES[code]) {
+          customBarcodes[code] = info;
+        }
+      });
+
+      const payload = {
+        inventory: inventory,
+        shoppingList: shoppingList,
+        customBarcodes: customBarcodes,
+        updatedAt: now
+      };
+
+      try {
+        const res = await fetch(`${FIREBASE_DB_URL}/rooms/${encodeURIComponent(familyRoomId)}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          setSyncStatus('online', `家庭即時同步 (${familyRoomId})`);
+        } else {
+          setSyncStatus('error', '雲端權限不足或連線失敗');
+        }
+      } catch (e) {
+        setSyncStatus('error', '離線模式 (恢復網路後自動同步)');
+      } finally {
+        isSyncing = false;
+      }
+    }
+
+    // 從 Firebase 抓取最新資料
+    async function pullDataFromFirebase(isInitial = false) {
+      if (isSyncing) return;
+      try {
+        const res = await fetch(`${FIREBASE_DB_URL}/rooms/${encodeURIComponent(familyRoomId)}.json`);
+        if (!res.ok) {
+          setSyncStatus('error', '雲端連線受阻，請檢查規則');
+          return;
+        }
+        const data = await res.json();
+
+        // 若雲端該家庭代碼尚無資料，且本地有資料，則自動把本地資料首次上傳上雲
+        if (!data) {
+          if (isInitial && (inventory.length > 0 || shoppingList.length > 0)) {
+            await pushDataToFirebase();
+          } else {
+            setSyncStatus('online', `家庭已連線 (${familyRoomId})`);
+          }
+          return;
+        }
+
+        // 檢查雲端時間戳是否比本地新
+        if (data.updatedAt && data.updatedAt > lastCloudTimestamp) {
+          lastCloudTimestamp = data.updatedAt;
+          inventory = Array.isArray(data.inventory) ? data.inventory : [];
+          shoppingList = Array.isArray(data.shoppingList) ? data.shoppingList : [];
+          if (data.customBarcodes) {
+            barcodeDb = Object.assign({}, EXTENDED_TW_BARCODES, storedBarcodes, data.customBarcodes);
+          }
+          // 僅更新本地與重繪，不再反向觸發上傳
+          localStorage.setItem('smart_fridge_inventory', JSON.stringify(inventory));
+          localStorage.setItem('smart_fridge_barcodes', JSON.stringify(barcodeDb));
+          localStorage.setItem('smart_fridge_shopping', JSON.stringify(shoppingList));
+          render();
+        }
+        setSyncStatus('online', `家庭即時同步 (${familyRoomId})`);
+      } catch (e) {
+        setSyncStatus('error', '網路連線中斷');
+      }
+    }
+
+    function updateFamilyCode() {
+      const inputVal = document.getElementById('familyCodeInput').value.trim();
+      if (!inputVal) return alert('請輸入有效的家庭共享代碼');
+      if (!/^[a-zA-Z0-9_-]+$/.test(inputVal)) {
+        return alert('為了確保網址連線穩定，請使用英文、數字或減號（例如：huang-888）');
+      }
+      familyRoomId = inputVal;
+      localStorage.setItem('smart_fridge_family_id', familyRoomId);
+      lastCloudTimestamp = 0; // 重設時間戳強制拉取新房間資料
+      closeSettingsModal();
+      setSyncStatus('syncing', `切換至 ${familyRoomId}...`);
+      pullDataFromFirebase(false);
     }
 
     function resetToExpandedBarcodes() {
@@ -396,7 +545,7 @@
         document.getElementById('itemMinQty').value = data.minQty ? data.minQty : '';
         document.getElementById('itemIcon').value = data.icon || 'fa-box';
         document.getElementById('itemExpiry').value = getFutureDateStr(data.shelfDays || 7);
-        statusTip.textContent = `✓ 已從本地條碼庫自動帶出「${data.name}」`;
+        statusTip.textContent = `✓ 已從共享條碼庫自動帶出「${data.name}」`;
         statusTip.className = "text-[11px] text-emerald-600 mt-1 block";
         return;
       }
@@ -422,10 +571,10 @@
         }
       } catch (err) {}
 
-      statusTip.textContent = '✎ 此為新條碼，請輸入名稱儲存後系統將自動記住！';
+      statusTip.textContent = '✎ 此為新條碼，輸入儲存後全家人手機都會自動記住！';
       statusTip.className = "text-[11px] text-slate-500 mt-1 block";
       if (showAlert) {
-        alert('條碼庫尚無此商品，請直接手動輸入品名，儲存後系統便會永遠記住！');
+        alert('條碼庫尚無此商品，請直接手動輸入品名，儲存後系統便會同步分享給家人！');
       }
     }
 
@@ -578,7 +727,7 @@
       }
 
       matchedItem.qty = newQty;
-      saveAll();
+      saveAll(true);
 
       const successMsg = `已將 ${matchedItem.name} 更新為 ${newQty} ${matchedItem.unit}`;
       document.getElementById('voiceTranscriptTip').innerHTML = `聽到：「${rawText}」<br>✅ ${successMsg}`;
@@ -589,7 +738,7 @@
         setTimeout(() => {
           if (confirm(`「${matchedItem.name}」目前已剩 ${newQty} ${matchedItem.unit}，要加入採買清單嗎？`)) {
             shoppingList.push({ id: 'shop-' + Date.now(), name: matchedItem.name, unit: matchedItem.unit, qty: 1, checked: false });
-            saveAll();
+            saveAll(true);
           }
         }, 700);
       }
@@ -757,7 +906,7 @@
           shoppingList.push({ id: 'shop-' + Date.now(), name: item.name, unit: item.unit, qty: 1, checked: false });
         }
       }
-      saveAll();
+      saveAll(true);
     }
 
     function updateBadges() {
@@ -841,17 +990,17 @@
     function toggleShopping(id) {
       const item = shoppingList.find(s => s.id === id);
       if (item) item.checked = !item.checked;
-      saveAll();
+      saveAll(true);
     }
 
     function removeShopping(id) {
       shoppingList = shoppingList.filter(s => s.id !== id);
-      saveAll();
+      saveAll(true);
     }
 
     function clearCompletedShopping() {
       shoppingList = shoppingList.filter(s => !s.checked);
-      saveAll();
+      saveAll(true);
     }
 
     function openAddModal() {
@@ -892,17 +1041,17 @@
     function deleteCurrentItem() {
       const id = document.getElementById('editItemId').value;
       const item = inventory.find(i => i.id === id);
-      if (item && confirm(`確定要從冰箱刪除「${item.name}」嗎？`)) {
+      if (item && confirm(`確定要從家庭冰箱刪除「${item.name}」嗎？`)) {
         inventory = inventory.filter(i => i.id !== id);
         closeItemModal();
-        saveAll();
+        saveAll(true);
       }
     }
 
     function clearAllInventory() {
-      if (confirm('確定要清空冰箱內的所有食材嗎？（自建與擴充的條碼資料庫皆會保留）')) {
+      if (confirm('確定要清空家庭冰箱內的所有食材嗎？（所有連線家人的畫面都會同步清空）')) {
         inventory = [];
-        saveAll();
+        saveAll(true);
         closeSettingsModal();
       }
     }
@@ -932,7 +1081,7 @@
       }
 
       closeItemModal();
-      saveAll();
+      saveAll(true);
     }
 
     function startScannerModal() {
@@ -995,6 +1144,7 @@
     }
 
     function openSettingsModal() {
+      document.getElementById('familyCodeInput').value = familyRoomId;
       document.getElementById('barcodeCount').textContent = Object.keys(barcodeDb).length;
       const listEl = document.getElementById('barcodeListContainer');
       listEl.innerHTML = '';
@@ -1020,7 +1170,7 @@
     function deleteBarcode(code) {
       if (confirm(`確定刪除條碼「${code}」的綁定資料嗎？`)) {
         delete barcodeDb[code];
-        saveAll();
+        saveAll(true);
         openSettingsModal();
       }
     }
@@ -1047,8 +1197,8 @@
             inventory = data.inventory;
             barcodeDb = data.barcodeDb;
             if (data.shoppingList) shoppingList = data.shoppingList;
-            saveAll();
-            alert('成功匯入家庭冰箱資料！');
+            saveAll(true);
+            alert('成功匯入並同步至家庭雲端！');
             closeSettingsModal();
           } else {
             alert('檔案格式不相符！');
@@ -1062,6 +1212,9 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       render();
+      // 啟動即刻首次同步，並每 2.5 秒自動檢查雲端是否有家人更新
+      pullDataFromFirebase(true);
+      setInterval(() => pullDataFromFirebase(false), 2500);
     });
   </script>
 </body>
