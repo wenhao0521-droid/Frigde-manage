@@ -184,8 +184,8 @@
             <input type="number" id="itemQty" required min="0" value="1" step="any" class="w-full text-sm border rounded-lg p-2">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">安全存量 *</label>
-            <input type="number" id="itemMinQty" required min="0" value="1" class="w-full text-sm border rounded-lg p-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">安全存量 (選填)</label>
+            <input type="number" id="itemMinQty" min="0" placeholder="0" step="any" class="w-full text-sm border rounded-lg p-2">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">單位</label>
@@ -284,46 +284,46 @@
 
   <script>
     const EXTENDED_TW_BARCODES = {
-      "4710126532014": { name: "義美全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710126532021": { name: "義美低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710088430519": { name: "統一瑞穗全脂鮮乳 930ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710088430526": { name: "統一瑞穗低脂鮮乳 930ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710043003017": { name: "光泉全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710043003024": { name: "光泉低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710174001012": { name: "味全林鳳營全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710174001029": { name: "味全林鳳營低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 12, icon: "fa-bottle-water" },
-      "4710088430014": { name: "統一陽光無加糖高纖豆漿 450ml", zone: "fridge", unit: "瓶", minQty: 2, shelfDays: 13, icon: "fa-bottle-water" },
-      "4710088430021": { name: "統一陽光低糖高纖豆漿 450ml", zone: "fridge", unit: "瓶", minQty: 2, shelfDays: 13, icon: "fa-bottle-water" },
-      "4710126010017": { name: "義美無加糖高纖豆奶 946ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 13, icon: "fa-bottle-water" },
-      "4710126010024": { name: "義美古早味豆奶 946ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 13, icon: "fa-bottle-water" },
-      "4710088410214": { name: "統一純喫茶 紅茶 650ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 15, icon: "fa-bottle-water" },
-      "4710088410221": { name: "統一純喫茶 綠茶 650ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 15, icon: "fa-bottle-water" },
-      "4710088410238": { name: "統一純喫茶 檸檬紅茶 650ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 15, icon: "fa-bottle-water" },
-      "4710088412805": { name: "茶裏王 日式無糖綠茶 600ml", zone: "fridge", unit: "瓶", minQty: 2, shelfDays: 180, icon: "fa-bottle-water" },
-      "4710088412812": { name: "茶裏王 台灣阿里山烏龍茶 600ml", zone: "fridge", unit: "瓶", minQty: 2, shelfDays: 180, icon: "fa-bottle-water" },
-      "4710088412829": { name: "茶裏王 白毫烏龍茶 600ml", zone: "fridge", unit: "瓶", minQty: 2, shelfDays: 180, icon: "fa-bottle-water" },
-      "4710018011016": { name: "養樂多 300 Light 100ml", zone: "fridge", unit: "瓶", minQty: 5, shelfDays: 16, icon: "fa-bottle-water" },
-      "4710088432018": { name: "統一AB原味優酪乳 517ml", zone: "fridge", unit: "瓶", minQty: 1, shelfDays: 18, icon: "fa-bottle-water" },
-      "4710022011019": { name: "中華嫩豆腐 300g", zone: "fridge", unit: "盒", minQty: 1, shelfDays: 30, icon: "fa-box" },
-      "4710022011026": { name: "中華火鍋豆腐 300g", zone: "fridge", unit: "盒", minQty: 1, shelfDays: 30, icon: "fa-box" },
-      "4710022011033": { name: "中華雞蛋豆腐 300g", zone: "fridge", unit: "盒", minQty: 1, shelfDays: 30, icon: "fa-box" },
-      "4711234567890": { name: "洗選洗淨鮮雞蛋 10入", zone: "fridge", unit: "盒", minQty: 1, shelfDays: 21, icon: "fa-egg" },
-      "4710018111013": { name: "福記香菇茶碗蒸", zone: "fridge", unit: "盒", minQty: 2, shelfDays: 25, icon: "fa-egg" },
-      "4710018182013": { name: "桂冠魚餃 100g", zone: "freezer", unit: "盒", minQty: 2, shelfDays: 180, icon: "fa-snowflake" },
-      "4710018182020": { name: "桂冠蝦餃 100g", zone: "freezer", unit: "盒", minQty: 2, shelfDays: 180, icon: "fa-snowflake" },
-      "4710018182037": { name: "桂冠燕餃 100g", zone: "freezer", unit: "盒", minQty: 2, shelfDays: 180, icon: "fa-snowflake" },
-      "4710018182044": { name: "桂冠蛋餃 100g", zone: "freezer", unit: "盒", minQty: 2, shelfDays: 180, icon: "fa-snowflake" },
-      "4710018181016": { name: "桂冠芝麻湯圓 10顆裝", zone: "freezer", unit: "盒", minQty: 1, shelfDays: 365, icon: "fa-snowflake" },
-      "4710018181023": { name: "桂冠花生湯圓 10顆裝", zone: "freezer", unit: "盒", minQty: 1, shelfDays: 365, icon: "fa-snowflake" },
-      "4710126221017": { name: "義美手工高麗菜豬肉水餃", zone: "freezer", unit: "包", minQty: 1, shelfDays: 360, icon: "fa-snowflake" },
-      "4710126221024": { name: "義美手工韭菜豬肉水餃", zone: "freezer", unit: "包", minQty: 1, shelfDays: 360, icon: "fa-snowflake" },
-      "4710058210011": { name: "及第高麗菜手工捏花水餃", zone: "freezer", unit: "包", minQty: 1, shelfDays: 360, icon: "fa-snowflake" },
-      "4710058210028": { name: "及第豬肉韭菜手工水餃", zone: "freezer", unit: "包", minQty: 1, shelfDays: 360, icon: "fa-snowflake" },
-      "4710088431011": { name: "統一巷口乾麵 麻醬風味", zone: "pantry", unit: "包", minQty: 4, shelfDays: 180, icon: "fa-box-open" },
-      "4710088431028": { name: "統一麵 肉燥風味 5包入", zone: "pantry", unit: "袋", minQty: 1, shelfDays: 180, icon: "fa-box-open" },
-      "4710088431035": { name: "統一滿漢大餐 蔥燒牛肉麵", zone: "pantry", unit: "碗", minQty: 2, shelfDays: 180, icon: "fa-box-open" },
-      "4710088431042": { name: "維力炸醬麵 5包入", zone: "pantry", unit: "袋", minQty: 1, shelfDays: 180, icon: "fa-box-open" },
-      "4710126030015": { name: "義美純豬肉鬆 175g", zone: "pantry", unit: "罐", minQty: 1, shelfDays: 365, icon: "fa-box-open" }
+      "4710126532014": { name: "義美全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710126532021": { name: "義美低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710088430519": { name: "統一瑞穗全脂鮮乳 930ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710088430526": { name: "統一瑞穗低脂鮮乳 930ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710043003017": { name: "光泉全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710043003024": { name: "光泉低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710174001012": { name: "味全林鳳營全脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710174001029": { name: "味全林鳳營低脂鮮乳 936ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 12, icon: "fa-bottle-water" },
+      "4710088430014": { name: "統一陽光無加糖高纖豆漿 450ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 13, icon: "fa-bottle-water" },
+      "4710088430021": { name: "統一陽光低糖高纖豆漿 450ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 13, icon: "fa-bottle-water" },
+      "4710126010017": { name: "義美無加糖高纖豆奶 946ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 13, icon: "fa-bottle-water" },
+      "4710126010024": { name: "義美古早味豆奶 946ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 13, icon: "fa-bottle-water" },
+      "4710088410214": { name: "統一純喫茶 紅茶 650ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 15, icon: "fa-bottle-water" },
+      "4710088410221": { name: "統一純喫茶 綠茶 650ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 15, icon: "fa-bottle-water" },
+      "4710088410238": { name: "統一純喫茶 檸檬紅茶 650ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 15, icon: "fa-bottle-water" },
+      "4710088412805": { name: "茶裏王 日式無糖綠茶 600ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 180, icon: "fa-bottle-water" },
+      "4710088412812": { name: "茶裏王 台灣阿里山烏龍茶 600ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 180, icon: "fa-bottle-water" },
+      "4710088412829": { name: "茶裏王 白毫烏龍茶 600ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 180, icon: "fa-bottle-water" },
+      "4710018011016": { name: "養樂多 300 Light 100ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 16, icon: "fa-bottle-water" },
+      "4710088432018": { name: "統一AB原味優酪乳 517ml", zone: "fridge", unit: "瓶", minQty: 0, shelfDays: 18, icon: "fa-bottle-water" },
+      "4710022011019": { name: "中華嫩豆腐 300g", zone: "fridge", unit: "盒", minQty: 0, shelfDays: 30, icon: "fa-box" },
+      "4710022011026": { name: "中華火鍋豆腐 300g", zone: "fridge", unit: "盒", minQty: 0, shelfDays: 30, icon: "fa-box" },
+      "4710022011033": { name: "中華雞蛋豆腐 300g", zone: "fridge", unit: "盒", minQty: 0, shelfDays: 30, icon: "fa-box" },
+      "4711234567890": { name: "洗選洗淨鮮雞蛋 10入", zone: "fridge", unit: "盒", minQty: 0, shelfDays: 21, icon: "fa-egg" },
+      "4710018111013": { name: "福記香菇茶碗蒸", zone: "fridge", unit: "盒", minQty: 0, shelfDays: 25, icon: "fa-egg" },
+      "4710018182013": { name: "桂冠魚餃 100g", zone: "freezer", unit: "盒", minQty: 0, shelfDays: 180, icon: "fa-snowflake" },
+      "4710018182020": { name: "桂冠蝦餃 100g", zone: "freezer", unit: "盒", minQty: 0, shelfDays: 180, icon: "fa-snowflake" },
+      "4710018182037": { name: "桂冠燕餃 100g", zone: "freezer", unit: "盒", minQty: 0, shelfDays: 180, icon: "fa-snowflake" },
+      "4710018182044": { name: "桂冠蛋餃 100g", zone: "freezer", unit: "盒", minQty: 0, shelfDays: 180, icon: "fa-snowflake" },
+      "4710018181016": { name: "桂冠芝麻湯圓 10顆裝", zone: "freezer", unit: "盒", minQty: 0, shelfDays: 365, icon: "fa-snowflake" },
+      "4710018181023": { name: "桂冠花生湯圓 10顆裝", zone: "freezer", unit: "盒", minQty: 0, shelfDays: 365, icon: "fa-snowflake" },
+      "4710126221017": { name: "義美手工高麗菜豬肉水餃", zone: "freezer", unit: "包", minQty: 0, shelfDays: 360, icon: "fa-snowflake" },
+      "4710126221024": { name: "義美手工韭菜豬肉水餃", zone: "freezer", unit: "包", minQty: 0, shelfDays: 360, icon: "fa-snowflake" },
+      "4710058210011": { name: "及第高麗菜手工捏花水餃", zone: "freezer", unit: "包", minQty: 0, shelfDays: 360, icon: "fa-snowflake" },
+      "4710058210028": { name: "及第豬肉韭菜手工水餃", zone: "freezer", unit: "包", minQty: 0, shelfDays: 360, icon: "fa-snowflake" },
+      "4710088431011": { name: "統一巷口乾麵 麻醬風味", zone: "pantry", unit: "包", minQty: 0, shelfDays: 180, icon: "fa-box-open" },
+      "4710088431028": { name: "統一麵 肉燥風味 5包入", zone: "pantry", unit: "袋", minQty: 0, shelfDays: 180, icon: "fa-box-open" },
+      "4710088431035": { name: "統一滿漢大餐 蔥燒牛肉麵", zone: "pantry", unit: "碗", minQty: 0, shelfDays: 180, icon: "fa-box-open" },
+      "4710088431042": { name: "維力炸醬麵 5包入", zone: "pantry", unit: "袋", minQty: 0, shelfDays: 180, icon: "fa-box-open" },
+      "4710126030015": { name: "義美純豬肉鬆 175g", zone: "pantry", unit: "罐", minQty: 0, shelfDays: 365, icon: "fa-box-open" }
     };
 
     let storedBarcodes = JSON.parse(localStorage.getItem('smart_fridge_barcodes')) || {};
@@ -393,7 +393,7 @@
         document.getElementById('itemName').value = data.name;
         document.getElementById('itemZone').value = data.zone || 'fridge';
         document.getElementById('itemUnit').value = data.unit || '瓶';
-        document.getElementById('itemMinQty').value = data.minQty || 1;
+        document.getElementById('itemMinQty').value = data.minQty ? data.minQty : '';
         document.getElementById('itemIcon').value = data.icon || 'fa-box';
         document.getElementById('itemExpiry').value = getFutureDateStr(data.shelfDays || 7);
         statusTip.textContent = `✓ 已從本地條碼庫自動帶出「${data.name}」`;
@@ -499,15 +499,10 @@
       }
     }
 
-    // ==========================================
-    // 升級版高精準度關鍵字計分匹配引擎
-    // ==========================================
     function findBestMatchingItem(spokenText) {
-      // 1. 提取出商品名稱部分（移除數量與動作描述詞）
       let itemPart = spokenText.replace(/(?:剩|還有|剩下|變成|改為|只有|有|吃|喝|用|拿|完|沒有|沒|了|\d+(?:\.\d+)?|瓶|罐|盒|包|顆|袋|碗|份|台斤|把)/g, '').trim();
       if (!itemPart) itemPart = spokenText;
 
-      // 同義詞擴展表（解決說「牛奶」但品名寫「鮮乳」的問題）
       let expandedQuery = itemPart;
       if (expandedQuery.includes('牛奶') || expandedQuery.includes('鮮奶')) expandedQuery += ' 鮮乳';
       if (expandedQuery.includes('鮮乳')) expandedQuery += ' 牛奶';
@@ -521,21 +516,18 @@
         let score = 0;
         const targetName = item.name;
 
-        // A. 完全包含整段品名詞（最高權重）
         if (targetName.includes(itemPart) && itemPart.length >= 2) {
           score += itemPart.length * 20;
         }
 
-        // B. 計算連續雙字詞（Bigram）重合度（例如「林鳳」「鳳營」「鮮乳」等）
         const cleanQuery = expandedQuery.replace(/\s+/g, '');
         for (let i = 0; i < cleanQuery.length - 1; i++) {
           const bigram = cleanQuery.slice(i, i + 2);
           if (targetName.includes(bigram)) {
-            score += 15; // 只要連續兩個字完全一樣，大幅加分
+            score += 15;
           }
         }
 
-        // C. 單字匹配輔助加分（避免只對中 1 個「乳」字就亂配對）
         for (let char of itemPart) {
           if (char.trim() && targetName.includes(char)) {
             score += 2;
@@ -548,7 +540,6 @@
         }
       }
 
-      // 門檻過濾：至少要命中一個雙字詞（>= 15分）才算真正找到，避免張冠李戴
       return highestScore >= 15 ? bestItem : null;
     }
 
@@ -593,9 +584,10 @@
       document.getElementById('voiceTranscriptTip').innerHTML = `聽到：「${rawText}」<br>✅ ${successMsg}`;
       speakText(successMsg);
 
-      if (newQty <= matchedItem.minQty && !shoppingList.some(s => s.name === matchedItem.name && !s.checked)) {
+      const minVal = matchedItem.minQty || 0;
+      if (newQty <= minVal && !shoppingList.some(s => s.name === matchedItem.name && !s.checked)) {
         setTimeout(() => {
-          if (confirm(`「${matchedItem.name}」目前已剩 ${newQty} ${matchedItem.unit}（低於安全存量），要加入採買清單嗎？`)) {
+          if (confirm(`「${matchedItem.name}」目前已剩 ${newQty} ${matchedItem.unit}，要加入採買清單嗎？`)) {
             shoppingList.push({ id: 'shop-' + Date.now(), name: matchedItem.name, unit: matchedItem.unit, qty: 1, checked: false });
             saveAll();
           }
@@ -623,7 +615,8 @@
           items = items.filter(item => {
             const exp = new Date(item.expiry).setHours(0,0,0,0);
             const daysLeft = Math.ceil((exp - today) / (1000*60*60*24));
-            return daysLeft <= 3 || item.qty <= item.minQty;
+            const minVal = item.minQty || 0;
+            return daysLeft <= 3 || item.qty <= minVal;
           });
         } else {
           items = items.filter(item => item.zone === currentFilter);
@@ -643,7 +636,8 @@
       items.forEach(item => {
         const exp = new Date(item.expiry).setHours(0,0,0,0);
         const daysLeft = Math.ceil((exp - today) / (1000*60*60*24));
-        const isLowStock = item.qty <= item.minQty;
+        const minVal = item.minQty || 0;
+        const isLowStock = item.qty <= minVal;
 
         let statusBadge = '';
         let cardBorder = 'border-slate-200';
@@ -700,9 +694,10 @@
       inventory.forEach(i => {
         const exp = new Date(i.expiry).setHours(0,0,0,0);
         const days = Math.ceil((exp - today) / (1000*60*60*24));
+        const minVal = i.minQty || 0;
         if (days < 0) expiredCount++;
         else if (days <= 3) soonCount++;
-        if (i.qty <= i.minQty) lowCount++;
+        if (i.qty <= minVal) lowCount++;
       });
 
       const summaryEl = document.getElementById('alertSummary');
@@ -727,6 +722,7 @@
       inventory.forEach(i => {
         const exp = new Date(i.expiry).setHours(0,0,0,0);
         const days = Math.ceil((exp - today) / (1000*60*60*24));
+        const minVal = i.minQty || 0;
         if (days < 0) {
           msg += `🔴 [已過期] ${i.name} (過期${Math.abs(days)}天)\n`;
           hasIssue = true;
@@ -734,8 +730,8 @@
           msg += `🟡 [即將到期] ${i.name} (剩餘 ${i.qty}${i.unit}，${days}天後到期)\n`;
           hasIssue = true;
         }
-        if (i.qty <= i.minQty) {
-          msg += `🛒 [低存量] ${i.name} (現存 ${i.qty}${i.unit} <= 安全量 ${i.minQty})\n`;
+        if (i.qty <= minVal) {
+          msg += `🛒 [低存量] ${i.name} (現存 ${i.qty}${i.unit})\n`;
           hasIssue = true;
         }
       });
@@ -754,9 +750,10 @@
       const item = inventory.find(i => i.id === id);
       if (!item) return;
       item.qty = Math.max(0, Number((item.qty + delta).toFixed(1)));
+      const minVal = item.minQty || 0;
       
-      if (item.qty <= item.minQty && !shoppingList.some(s => s.name === item.name && !s.checked)) {
-        if (confirm(`「${item.name}」已低於安全存量，要加入採買清單嗎？`)) {
+      if (item.qty <= minVal && !shoppingList.some(s => s.name === item.name && !s.checked)) {
+        if (confirm(`「${item.name}」已達補貨標準，要加入採買清單嗎？`)) {
           shoppingList.push({ id: 'shop-' + Date.now(), name: item.name, unit: item.unit, qty: 1, checked: false });
         }
       }
@@ -772,7 +769,8 @@
       
       const warnCount = inventory.filter(i => {
         const days = Math.ceil((new Date(i.expiry).setHours(0,0,0,0) - today) / (1000*60*60*24));
-        return days <= 3 || i.qty <= i.minQty;
+        const minVal = i.minQty || 0;
+        return days <= 3 || i.qty <= minVal;
       }).length;
       document.getElementById('count-warning').textContent = warnCount;
 
@@ -862,7 +860,7 @@
       document.getElementById('itemBarcode').value = '';
       document.getElementById('itemName').value = '';
       document.getElementById('itemQty').value = '1';
-      document.getElementById('itemMinQty').value = '1';
+      document.getElementById('itemMinQty').value = '';
       document.getElementById('itemExpiry').value = getFutureDateStr(7);
       document.getElementById('barcodeStatusTip').classList.add('hidden');
       document.getElementById('btnDeleteItem').classList.add('hidden');
@@ -879,7 +877,7 @@
       document.getElementById('itemZone').value = item.zone;
       document.getElementById('itemIcon').value = item.icon || 'fa-box';
       document.getElementById('itemQty').value = item.qty;
-      document.getElementById('itemMinQty').value = item.minQty;
+      document.getElementById('itemMinQty').value = item.minQty ? item.minQty : '';
       document.getElementById('itemUnit').value = item.unit || '份';
       document.getElementById('itemExpiry').value = item.expiry;
       document.getElementById('barcodeStatusTip').classList.add('hidden');
@@ -916,8 +914,9 @@
       const name = document.getElementById('itemName').value.trim();
       const zone = document.getElementById('itemZone').value;
       const icon = document.getElementById('itemIcon').value;
-      const qty = parseFloat(document.getElementById('itemQty').value) || 1;
-      const minQty = parseFloat(document.getElementById('itemMinQty').value) || 1;
+      const qty = parseFloat(document.getElementById('itemQty').value) || 0;
+      const minQtyRaw = document.getElementById('itemMinQty').value.trim();
+      const minQty = minQtyRaw === '' ? 0 : (parseFloat(minQtyRaw) || 0);
       const unit = document.getElementById('itemUnit').value;
       const expiry = document.getElementById('itemExpiry').value;
 
