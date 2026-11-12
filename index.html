@@ -79,9 +79,9 @@
       <div>
         <h3 class="font-bold text-base flex items-center gap-1.5">
           <span>庫存智慧更新</span>
-          <span class="bg-emerald-700/60 text-[10px] px-1.5 py-0.5 rounded-full font-normal">聯網條碼庫</span>
+          <span class="bg-emerald-700/60 text-[10px] px-1.5 py-0.5 rounded-full font-normal">精準聲控</span>
         </h3>
-        <p class="text-xs text-emerald-100 mt-0.5">支援國字語音（如：牛奶剩兩罐）與掃碼</p>
+        <p class="text-xs text-emerald-100 mt-0.5">支援品牌名語音（如：林鳳營牛奶剩兩瓶）與掃碼</p>
       </div>
       <button onclick="startScannerModal()" class="bg-white text-emerald-700 hover:bg-emerald-50 font-bold px-3 py-2 rounded-xl text-sm shadow flex items-center space-x-1.5 active:scale-95 transition">
         <i class="fa-solid fa-barcode text-base"></i>
@@ -99,9 +99,7 @@
     </div>
 
     <!-- 食材清單容器 -->
-    <div id="foodList" class="space-y-2.5">
-      <!-- 動態載入項目 -->
-    </div>
+    <div id="foodList" class="space-y-2.5"></div>
 
     <!-- 採買清單分頁 -->
     <div id="shoppingSection" class="hidden space-y-3">
@@ -115,8 +113,8 @@
 
   <!-- 語音辨識浮動懸浮鈕 (FAB) -->
   <div class="fixed right-5 bottom-20 z-40 flex flex-col items-end">
-    <div id="voiceTranscriptTip" class="hidden mb-2 bg-slate-900/90 text-white text-xs px-3.5 py-2 rounded-xl shadow-lg backdrop-blur-sm max-w-[240px] text-right leading-relaxed">
-      請說，例如：「牛奶剩兩罐」
+    <div id="voiceTranscriptTip" class="hidden mb-2 bg-slate-900/90 text-white text-xs px-3.5 py-2 rounded-xl shadow-lg backdrop-blur-sm max-w-[260px] text-right leading-relaxed">
+      請說，例如：「林鳳營牛奶剩兩瓶」
     </div>
     <button id="micBtn" onclick="toggleVoiceRecognition()" class="w-14 h-14 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center text-xl transition transform active:scale-90 hover:scale-105 border-2 border-white">
       <i id="micIcon" class="fa-solid fa-microphone"></i>
@@ -380,7 +378,6 @@
       }
     }
 
-    // 條碼查詢
     async function quickFillBarcode(showAlert = false) {
       const code = document.getElementById('itemBarcode').value.trim();
       const statusTip = document.getElementById('barcodeStatusTip');
@@ -432,36 +429,24 @@
       }
     }
 
-    // ==========================================
-    // 升級版中文數字轉阿拉伯數字輔助函式
-    // ==========================================
     function normalizeChineseNumbers(str) {
       let result = str;
-      // 處理特殊口語「一半」、「半」
       result = result.replace(/剩一半|剩下一半|只有一半/g, '剩0.5');
       result = result.replace(/半(?:瓶|罐|盒|包|顆|袋|碗|份)/g, '0.5');
 
-      // 處理十幾、幾十
       const cnDigitMap = {
         '零': '0', '一': '1', '二': '2', '兩': '2', '三': '3',
         '四': '4', '五': '5', '六': '6', '七': '7', '八': '8', '九': '9'
       };
 
-      // 先處理 11~19 (例如：十二 -> 12)
       result = result.replace(/十([一二兩三四五六七八九])/g, (_, d) => '1' + cnDigitMap[d]);
-      // 處理整十 (例如：二十 -> 20)
       result = result.replace(/([一二兩三四五六七八九])十/g, (_, d) => cnDigitMap[d] + '0');
-      // 單獨的十
       result = result.replace(/十/g, '10');
-      // 個位國字轉阿拉伯數字
       result = result.replace(/[零一二兩三四五六七八九]/g, (m) => cnDigitMap[m]);
 
       return result;
     }
 
-    // ==========================================
-    // 語音辨識核心邏輯
-    // ==========================================
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -476,7 +461,7 @@
       recognition.onstart = () => {
         isListening = true;
         document.getElementById('micBtn').classList.add('mic-recording');
-        document.getElementById('voiceTranscriptTip').innerHTML = '🎙️ 正在聆聽...請說例如：<br>「牛奶剩兩罐」';
+        document.getElementById('voiceTranscriptTip').innerHTML = '🎙️ 正在聆聽...請說例如：<br>「林鳳營牛奶剩兩瓶」';
         document.getElementById('voiceTranscriptTip').classList.remove('hidden');
       };
 
@@ -514,39 +499,62 @@
       }
     }
 
-    function parseVoiceCommand(rawText) {
-      // 將語音中的中文數字（兩、二、三、半等）轉成標準阿拉伯數字
-      const text = normalizeChineseNumbers(rawText);
-      let matchedItem = null;
+    // ==========================================
+    // 升級版高精準度關鍵字計分匹配引擎
+    // ==========================================
+    function findBestMatchingItem(spokenText) {
+      // 1. 提取出商品名稱部分（移除數量與動作描述詞）
+      let itemPart = spokenText.replace(/(?:剩|還有|剩下|變成|改為|只有|有|吃|喝|用|拿|完|沒有|沒|了|\d+(?:\.\d+)?|瓶|罐|盒|包|顆|袋|碗|份|台斤|把)/g, '').trim();
+      if (!itemPart) itemPart = spokenText;
 
-      // 1. 直接以品名比對
+      // 同義詞擴展表（解決說「牛奶」但品名寫「鮮乳」的問題）
+      let expandedQuery = itemPart;
+      if (expandedQuery.includes('牛奶') || expandedQuery.includes('鮮奶')) expandedQuery += ' 鮮乳';
+      if (expandedQuery.includes('鮮乳')) expandedQuery += ' 牛奶';
+      if (expandedQuery.includes('豆漿')) expandedQuery += ' 豆奶';
+      if (expandedQuery.includes('豆奶')) expandedQuery += ' 豆漿';
+
+      let bestItem = null;
+      let highestScore = 0;
+
       for (let item of inventory) {
-        const simpleName = item.name.replace(/\d+.*$/, '').trim();
-        if (text.includes(item.name) || text.includes(simpleName) || (simpleName.length >= 2 && simpleName.includes(text.slice(0, 2)))) {
-          matchedItem = item;
-          break;
+        let score = 0;
+        const targetName = item.name;
+
+        // A. 完全包含整段品名詞（最高權重）
+        if (targetName.includes(itemPart) && itemPart.length >= 2) {
+          score += itemPart.length * 20;
         }
-      }
 
-      // 2. 同義詞模糊比對（牛奶 <-> 鮮乳）
-      if (!matchedItem) {
-        const synonymGroups = [
-          ['牛奶', '鮮乳', '鮮奶', '牛乳'],
-          ['豆漿', '豆奶'],
-          ['雞蛋', '蛋'],
-          ['魚餃', '蝦餃', '燕餃', '蛋餃', '餃子', '水餃'],
-          ['豆腐', '嫩豆腐', '雞蛋豆腐'],
-          ['茶', '紅茶', '綠茶', '烏龍茶', '純喫茶', '茶裏王'],
-          ['泡麵', '乾麵', '牛肉麵', '炸醬麵', '麵']
-        ];
-
-        for (let group of synonymGroups) {
-          if (group.some(word => text.includes(word))) {
-            matchedItem = inventory.find(inv => group.some(word => inv.name.includes(word)));
-            if (matchedItem) break;
+        // B. 計算連續雙字詞（Bigram）重合度（例如「林鳳」「鳳營」「鮮乳」等）
+        const cleanQuery = expandedQuery.replace(/\s+/g, '');
+        for (let i = 0; i < cleanQuery.length - 1; i++) {
+          const bigram = cleanQuery.slice(i, i + 2);
+          if (targetName.includes(bigram)) {
+            score += 15; // 只要連續兩個字完全一樣，大幅加分
           }
         }
+
+        // C. 單字匹配輔助加分（避免只對中 1 個「乳」字就亂配對）
+        for (let char of itemPart) {
+          if (char.trim() && targetName.includes(char)) {
+            score += 2;
+          }
+        }
+
+        if (score > highestScore) {
+          highestScore = score;
+          bestItem = item;
+        }
       }
+
+      // 門檻過濾：至少要命中一個雙字詞（>= 15分）才算真正找到，避免張冠李戴
+      return highestScore >= 15 ? bestItem : null;
+    }
+
+    function parseVoiceCommand(rawText) {
+      const text = normalizeChineseNumbers(rawText);
+      const matchedItem = findBestMatchingItem(text);
 
       if (!matchedItem) {
         const tip = `聽到：「${rawText}」<br>❌ 冰箱清單中找不到對應食材`;
@@ -557,35 +565,27 @@
 
       let newQty = null;
 
-      // 解析動作類型：歸零（用完）
       if (/(?:吃完|喝完|用完|沒有了|沒了|歸零)/.test(text)) {
         newQty = 0;
-      } 
-      // 解析動作類型：設定剩餘量（例如：「剩2罐」、「還有3顆」、「剩下0.5」）
-      else if (/(?:剩|還有|剩下|變成|改為|只有|有)\s*(\d+(?:\.\d+)?)/.test(text)) {
+      } else if (/(?:剩|還有|剩下|變成|改為|只有|有)\s*(\d+(?:\.\d+)?)/.test(text)) {
         const matchSet = text.match(/(?:剩|還有|剩下|變成|改為|只有|有)\s*(\d+(?:\.\d+)?)/);
         newQty = parseFloat(matchSet[1]);
-      } 
-      // 解析動作類型：消耗扣減（例如：「喝了1罐」、「吃了2顆」）
-      else if (/(?:吃|喝|用|拿)了?\s*(\d+(?:\.\d+)?)/.test(text)) {
+      } else if (/(?:吃|喝|用|拿)了?\s*(\d+(?:\.\d+)?)/.test(text)) {
         const matchMinus = text.match(/(?:吃|喝|用|拿)了?\s*(\d+(?:\.\d+)?)/);
         const minusVal = parseFloat(matchMinus[1]);
         newQty = Math.max(0, Number((matchedItem.qty - minusVal).toFixed(1)));
-      }
-      // 兜底：句子裡有單獨數字加上單位（例如：「牛奶 2 罐」）
-      else if (/(\d+(?:\.\d+)?)\s*(?:瓶|罐|盒|包|顆|袋|碗|份|台斤|把)/.test(text)) {
+      } else if (/(\d+(?:\.\d+)?)\s*(?:瓶|罐|盒|包|顆|袋|碗|份|台斤|把)/.test(text)) {
         const matchUnitNum = text.match(/(\d+(?:\.\d+)?)\s*(?:瓶|罐|盒|包|顆|袋|碗|份|台斤|把)/);
         newQty = parseFloat(matchUnitNum[1]);
       }
 
       if (newQty === null || isNaN(newQty)) {
-        const tip = `聽到：「${rawText}」<br>⚠️ 無法判斷數量，請說「剩幾罐」`;
+        const tip = `聽到：「${rawText}」<br>⚠️ 無法判斷數量，請說「剩幾瓶」`;
         document.getElementById('voiceTranscriptTip').innerHTML = tip;
-        speakText('無法判斷數量，請再說一次剩幾罐。');
+        speakText('無法判斷數量，請再說一次剩幾瓶。');
         return;
       }
 
-      // 正式寫入新數量並更新畫面與 LocalStorage
       matchedItem.qty = newQty;
       saveAll();
 
@@ -593,7 +593,6 @@
       document.getElementById('voiceTranscriptTip').innerHTML = `聽到：「${rawText}」<br>✅ ${successMsg}`;
       speakText(successMsg);
 
-      // 檢查低庫存提示
       if (newQty <= matchedItem.minQty && !shoppingList.some(s => s.name === matchedItem.name && !s.checked)) {
         setTimeout(() => {
           if (confirm(`「${matchedItem.name}」目前已剩 ${newQty} ${matchedItem.unit}（低於安全存量），要加入採買清單嗎？`)) {
@@ -604,7 +603,6 @@
       }
     }
 
-    // 介面渲染
     function render() {
       renderInventory();
       renderSummary();
